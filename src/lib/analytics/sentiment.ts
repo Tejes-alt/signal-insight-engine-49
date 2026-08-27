@@ -138,7 +138,7 @@ export function summarizeSentiment(results: SentimentScored[]): SentimentDistrib
     confSum += r.confidence ?? r.sentimentConfidence ?? 0;
   }
   const mean = sum / total;
-  const variance = results.reduce((acc, r) => acc + (r.score - mean) ** 2, 0) / total;
+  const variance = scores.reduce((acc, s) => acc + (s - mean) ** 2, 0) / total;
   return {
     ...counts,
     total,
