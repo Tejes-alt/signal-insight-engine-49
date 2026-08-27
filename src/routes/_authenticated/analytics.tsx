@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_authenticated/analytics")({
 
 function cell(value: number | null | undefined, suffix = "") {
   if (value === null || value === undefined) {
-    return <span className="text-xs text-muted-foreground">Requires account connection</span>;
+    return <span className="text-xs text-muted-foreground">Not recorded yet</span>;
   }
   return (
     <span className="tabular font-semibold">
