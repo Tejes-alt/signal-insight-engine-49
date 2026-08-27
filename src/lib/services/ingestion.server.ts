@@ -136,7 +136,7 @@ export async function syncAccount(
           ? "setup_required"
           : "error";
 
-    await supabaseAdmin.rpc; // no-op guard for typing consistency
+    
     const { data: current } = await supabaseAdmin
       .from("provider_accounts")
       .select("error_count")
