@@ -357,11 +357,12 @@ function ShellInner({ children }: { children: ReactNode }) {
 
         <div className="flex min-w-0 flex-1 flex-col">
           <TopBar onOpenMenu={() => setMenuOpen(true)} onOpenCommand={() => setCommandOpen(true)} />
-          <main className="w-full flex-1 pb-24 md:pb-16">
+          <main className="mx-auto w-full max-w-[104rem] flex-1 px-4 pb-24 pt-7 md:px-8 md:pb-16 md:pt-9">
             <div key={pathname} className="page-enter">
               {children}
             </div>
           </main>
+
         </div>
       </div>
       <BottomNav />
