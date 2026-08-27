@@ -61,6 +61,26 @@ function AdminPage() {
         </div>
       ) : query.data ? (
         <div className="grid gap-5 lg:grid-cols-2">
+          <div className="lg:col-span-2">
+            {query.data.provider.apiKeyConfigured ? (
+              <div className="panel animate-rise flex items-center gap-3 border-success/40 p-4 text-sm">
+                <CheckCircle2 className="size-5 shrink-0 text-success" />
+                <span className="font-medium">Social integrations ready ✓</span>
+              </div>
+            ) : (
+              <div className="panel animate-rise flex items-start gap-3 border-warning/40 p-4 text-sm">
+                <XCircle className="mt-0.5 size-5 shrink-0 text-warning" />
+                <div>
+                  <p className="font-medium">⚠ Configuration required</p>
+                  <p className="text-muted-foreground">
+                    Add the social integration credential to the server-side secrets. End users never
+                    need to configure anything.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
           <section className="panel animate-rise p-6">
             <h2 className="font-display mb-2 font-semibold">Configuration</h2>
             <Check
@@ -77,9 +97,26 @@ function AdminPage() {
             <Check
               ok={query.data.profileCreated}
               label="Workspace provider profile"
-              hint="Created automatically on the first connection attempt."
+              hint="Created automatically on first sign-in once the provider key exists."
             />
+            <Check
+              ok={query.data.backgroundSync.enabled}
+              label="Background synchronization"
+              hint="Enabled automatically once the provider key exists."
+            />
+            <Check
+              ok={query.data.analyticsReady}
+              label="Analytics pipeline"
+              hint="Runs after the first account is connected."
+            />
+            <p className="mt-3 text-xs text-muted-foreground">
+              {query.data.backgroundSync.due} account(s) due for refresh
+              {query.data.backgroundSync.nextSyncAt
+                ? ` · next scheduled refresh ${new Date(query.data.backgroundSync.nextSyncAt).toLocaleString()}`
+                : ""}
+            </p>
           </section>
+
 
           <section className="panel animate-rise p-6">
             <h2 className="font-display mb-3 font-semibold">Recent sync jobs</h2>
