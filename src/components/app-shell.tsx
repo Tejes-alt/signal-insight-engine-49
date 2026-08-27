@@ -89,8 +89,8 @@ export function StatBlock({
 }: {
   label: string;
   value: string;
-  sub?: string;
-  tone?: "default" | "positive" | "negative";
+  sub?: string | undefined;
+  tone?: "default" | "positive" | "negative" | undefined;
 }) {
   return (
     <div className="panel rise-in p-4">

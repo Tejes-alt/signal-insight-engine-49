@@ -131,7 +131,9 @@ export async function updateSource(
   patch: { label?: string | null; paused?: boolean },
 ): Promise<void> {
   await assertMember(supabase, orgId, userId);
-  const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  const update: Record<string, string | boolean | null> = {
+    updated_at: new Date().toISOString(),
+  };
   if (patch.label !== undefined) update["label"] = patch.label;
   if (patch.paused !== undefined) {
     update["paused"] = patch.paused;
