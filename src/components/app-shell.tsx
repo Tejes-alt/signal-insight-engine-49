@@ -52,7 +52,12 @@ function NavGroup({
   onNavigate,
 }: {
   title?: string;
-  items: readonly { to: string; label: string; icon: (props: { size?: number; className?: string }) => ReactNode }[];
+  items: readonly {
+    to: string;
+    label: string;
+    icon: (props: { size?: number | undefined; className?: string | undefined }) => ReactNode;
+  }[];
+
   onNavigate?: (() => void) | undefined;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
