@@ -2,12 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AlertTriangle, CheckCircle2, Info, Sparkles } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { DemoBadge, EmptyState, SkeletonCard } from "@/components/metrics";
-import { useDashboard } from "@/hooks/use-dashboard";
+import { useDashboard, withDashboard } from "@/hooks/use-dashboard";
 import { cn } from "@/lib/utils";
 import type { InsightTone } from "@/lib/analytics/dashboard";
 
 export const Route = createFileRoute("/_authenticated/insights")({
-  component: InsightsPage,
+  component: withDashboard(InsightsPage),
   head: () => ({
     meta: [
       { title: "Insights · SocialPulse" },

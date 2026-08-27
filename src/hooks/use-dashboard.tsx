@@ -233,6 +233,32 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   return <DashboardContext.Provider value={value}>{children}</DashboardContext.Provider>;
 }
 
+/** Context if a provider is mounted above; null otherwise. */
+export function useOptionalDashboard(): DashboardContextValue | null {
+  return useContext(DashboardContext);
+}
+
+/**
+ * Guarantees the page has dashboard context even if the pathless layout that
+ * normally provides it has not mounted yet (client-only layout + route code
+ * splitting can render a leaf before its layout provider on first paint).
+ * Mounts the provider only when one is not already present, so state stays
+ * shared for normal navigations.
+ */
+export function withDashboard<P extends object>(
+  Component: (props: P) => ReactNode,
+): (props: P) => ReactNode {
+  return function DashboardBoundary(props: P) {
+    const ctx = useContext(DashboardContext);
+    if (ctx) return <Component {...props} />;
+    return (
+      <DashboardProvider>
+        <Component {...props} />
+      </DashboardProvider>
+    );
+  };
+}
+
 export function useDashboard(): DashboardContextValue {
   const ctx = useContext(DashboardContext);
   if (!ctx) throw new Error("useDashboard must be used inside DashboardProvider");

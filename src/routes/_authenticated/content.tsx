@@ -4,12 +4,12 @@ import { ExternalLink, Play } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { DemoBadge, EmptyState, MetricValue, SkeletonCard } from "@/components/metrics";
 import { PlatformMark } from "@/components/platform";
-import { useDashboard } from "@/hooks/use-dashboard";
+import { useDashboard, withDashboard } from "@/hooks/use-dashboard";
 import { cn } from "@/lib/utils";
 import type { ProviderId } from "@/lib/providers/registry";
 
 export const Route = createFileRoute("/_authenticated/content")({
-  component: ContentPage,
+  component: withDashboard(ContentPage),
   head: () => ({
     meta: [
       { title: "Content · SocialPulse" },
