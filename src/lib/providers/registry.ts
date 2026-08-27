@@ -9,7 +9,13 @@
  * API exposes. The UI renders these states verbatim instead of pretending.
  */
 
-export type ProviderId = "youtube" | "x" | "tiktok" | "instagram";
+export type ProviderId =
+  | "youtube"
+  | "instagram"
+  | "linkedin"
+  | "tiktok"
+  | "x"
+  | "facebook";
 
 export type CapabilityState =
   | "available" // works today with the configured credentials
