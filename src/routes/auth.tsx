@@ -290,12 +290,14 @@ function AuthPage() {
           </>
         )}
 
-        <p className="mt-6 flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
-          <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-primary" />
-          SocialPulse only reads information your profiles already publish openly. Private analytics stay locked
-          until you authorize a platform yourself.
-        </p>
+          <p className="mt-7 flex items-start gap-2 border-t border-border pt-5 text-xs leading-relaxed text-muted-foreground">
+            <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-primary" />
+            SocialPulse only reads information your profiles already publish openly. Private analytics stay locked
+            until you authorize a platform yourself.
+          </p>
+        </div>
       </div>
     </div>
+
   );
 }
