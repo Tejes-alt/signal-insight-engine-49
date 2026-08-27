@@ -48,15 +48,24 @@ export const startConnection = createServerFn({ method: "POST" })
     await assertMember(context.supabase, data.orgId, context.userId);
     const { beginAuthorization } = await import("./social/oauth/flow.server");
     const origin = new URL(data.returnUrl).origin;
-    const { url } = await beginAuthorization({
-      orgId: data.orgId,
-      userId: context.userId,
-      platform: data.platform,
-      handle: data.handle,
-      origin,
-      redirectTo: data.returnUrl,
-    });
-    return { url };
+    try {
+      const { url } = await beginAuthorization({
+        orgId: data.orgId,
+        userId: context.userId,
+        platform: data.platform,
+        handle: data.handle,
+        origin,
+        redirectTo: data.returnUrl,
+      });
+      return { url, available: true as const };
+    } catch (error) {
+      // A platform that isn't set up on this installation is an expected
+      // state, not a crash: hand the UI a calm, non-technical outcome.
+      if (error instanceof Error && error.name === "IntegrationNotConfiguredError") {
+        return { url: null, available: false as const };
+      }
+      throw error;
+    }
   });
 
 /** Looks for a public profile that may belong to the user. Never authoritative. */

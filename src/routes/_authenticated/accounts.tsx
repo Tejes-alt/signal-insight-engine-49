@@ -165,8 +165,19 @@ function AccountsPage() {
       setBusy(platform);
       setFailures((prev) => ({ ...prev, [platform]: undefined }));
     },
-    onSuccess: ({ url }) => {
-      window.location.href = url;
+    onSuccess: (result, platform: PlatformId) => {
+      if (result.url) {
+        window.location.href = result.url;
+        return;
+      }
+      setBusy(null);
+      setFailures((prev) => ({
+        ...prev,
+        [platform]: {
+          message: "You're almost there",
+          details: "This connection isn't available yet. We'll let you know as soon as it is.",
+        },
+      }));
     },
     onError: (error: Error, platform: PlatformId) => {
       setBusy(null);
