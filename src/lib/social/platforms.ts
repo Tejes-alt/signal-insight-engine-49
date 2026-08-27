@@ -15,8 +15,7 @@ export type PlatformId =
   | "linkedin"
   | "tiktok"
   | "twitter"
-  | "facebook"
-  | "gmb";
+  | "facebook";
 
 export interface PlatformDescriptor {
   id: PlatformId;
