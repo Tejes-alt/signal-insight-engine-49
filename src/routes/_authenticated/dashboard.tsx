@@ -1,3 +1,4 @@
+import { rangeChange } from "@/lib/analytics/dashboard";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Activity, ArrowUpRight, Eye, Heart, Link2, Users } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/app-shell";
@@ -85,7 +86,7 @@ function DashboardPage() {
             <StatCard
               label="Total followers"
               metric={bundle.totals.followers}
-              delta={bundle.totals.growth.d30}
+              delta={rangeChange(bundle.series, "followers")}
               icon={<Users className="size-4" />}
               accent="var(--color-chart-1)"
             />
@@ -119,7 +120,7 @@ function DashboardPage() {
                     Combined across {bundle.platforms.length} platform{bundle.platforms.length === 1 ? "" : "s"}
                   </p>
                 </div>
-                <DeltaPill value={bundle.totals.growth.d30} label="followers" />
+                <DeltaPill value={rangeChange(bundle.series, "followers")} label="followers" />
               </div>
               <TrendArea
                 series={bundle.series}

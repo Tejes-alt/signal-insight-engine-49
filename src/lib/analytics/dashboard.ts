@@ -149,6 +149,16 @@ export function pctChange(from: number | null, to: number | null): number | null
   return ((to - from) / from) * 100;
 }
 
+/** Percent change from the first to the last point of the given series. */
+export function rangeChange(
+  series: SeriesPoint[],
+  key: "followers" | "views" | "engagement",
+): number | null {
+  const points = series.filter((p) => p[key] !== null);
+  if (points.length < 2) return null;
+  return pctChange(points[0]![key], points.at(-1)![key]);
+}
+
 export function growthFromSeries(
   series: SeriesPoint[],
   key: "followers" | "views" | "engagement",
