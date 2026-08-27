@@ -3,6 +3,7 @@
  * Owns provider configuration status, source creation, and lifecycle actions.
  */
 
+import type { JsonObject } from "../json";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { PROVIDER_LIST, type ProviderId } from "../providers/registry";
@@ -49,7 +50,7 @@ export interface SourceRow {
   lastSyncedAt: string | null;
   nextSyncAt: string | null;
   createdAt: string;
-  metadata: Record<string, unknown>;
+  metadata: JsonObject;
 }
 
 export async function listSources(supabase: SupabaseClient, orgId: string): Promise<SourceRow[]> {
@@ -127,22 +128,25 @@ export async function updateSource(
   orgId: string,
   userId: string,
   sourceId: string,
-  patch: { label?: string | null; paused?: boolean },
+  patch: { label?: string | null | undefined; paused?: boolean | undefined },
 ): Promise<void> {
   await assertMember(supabase, orgId, userId);
-  const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
-  if (patch.label !== undefined) update["label"] = patch.label;
-  if (patch.paused !== undefined) {
-    update["paused"] = patch.paused;
-    update["next_sync_at"] = patch.paused ? null : new Date().toISOString();
-  }
   const { error } = await supabaseAdmin
     .from("provider_accounts")
-    .update(update)
+    .update({
+      updated_at: new Date().toISOString(),
+      ...(patch.label !== undefined ? { label: patch.label } : {}),
+      ...(patch.paused !== undefined
+        ? {
+            paused: patch.paused,
+            next_sync_at: patch.paused ? null : new Date().toISOString(),
+          }
+        : {}),
+    })
     .eq("id", sourceId)
     .eq("org_id", orgId);
   if (error) throw new Error(error.message);
-  await audit(orgId, userId, "source.updated", sourceId, patch as Record<string, unknown>);
+  await audit(orgId, userId, "source.updated", sourceId, patch as JsonObject);
 }
 
 export async function removeSource(

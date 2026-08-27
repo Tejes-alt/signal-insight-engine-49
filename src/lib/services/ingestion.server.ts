@@ -9,6 +9,7 @@
  * mutable metrics.
  */
 
+import type { JsonObject } from "../json";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { analyzeSentiment, SENTIMENT_METHOD } from "../analytics/sentiment";
 import type { NormalizedComment, NormalizedPost } from "../providers/normalized";
@@ -21,7 +22,7 @@ export interface SyncOutcome {
   updatedPosts: number;
   newComments: number;
   cursor: string | null;
-  note?: string;
+  note?: string | undefined;
 }
 
 interface AccountRow {
@@ -33,7 +34,7 @@ interface AccountRow {
   handle: string | null;
   display_name: string | null;
   sync_cursor: string | null;
-  metadata: Record<string, unknown>;
+  metadata: JsonObject;
   paused: boolean;
 }
 
@@ -217,7 +218,7 @@ export async function persistRecords(
     views: p.views,
     replies: p.replies,
     metric_provenance: p.metricProvenance,
-    raw: p.raw ?? null,
+    raw: (p.raw ?? null) as JsonObject | null,
     updated_at: new Date().toISOString(),
   }));
 

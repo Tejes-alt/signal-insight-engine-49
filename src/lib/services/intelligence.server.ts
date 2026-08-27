@@ -18,12 +18,12 @@ import type { SentimentLabel } from "../analytics/sentiment";
 
 export interface IntelligenceFilters {
   hours: number;
-  providers?: string[];
-  accountIds?: string[];
-  sentiment?: SentimentLabel[];
-  language?: string | null;
-  topic?: string | null;
-  search?: string | null;
+  providers?: string[] | undefined;
+  accountIds?: string[] | undefined;
+  sentiment?: SentimentLabel[] | undefined;
+  language?: string | null | undefined;
+  topic?: string | null | undefined;
+  search?: string | null | undefined;
 }
 
 const MAX_RECORDS = 5000;
