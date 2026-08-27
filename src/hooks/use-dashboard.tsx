@@ -200,6 +200,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       connectedCount: live.length,
       providerConfigured: socialQuery.data?.config?.apiKeyConfigured ?? false,
       linkingConfigured: socialQuery.data?.config?.linkingConfigured ?? false,
+      integrationsReady: workspaceQuery.data?.integrationsReady ?? false,
+
       lastSyncedAt,
       syncing,
       syncAll,
