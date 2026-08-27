@@ -4,6 +4,8 @@
  * reason is recorded in `metricProvenance` so the UI can explain the gap.
  */
 
+import type { JsonObject, JsonValue } from "../json";
+
 export type MetricSource = "provider" | "derived" | "unsupported" | "requires_authorization";
 
 export interface NormalizedPost {
@@ -28,7 +30,7 @@ export interface NormalizedPost {
   views: number | null;
   replies: number | null;
   metricProvenance: Record<string, MetricSource>;
-  raw?: unknown;
+  raw?: JsonValue | undefined;
 }
 
 export interface NormalizedComment {
@@ -49,7 +51,7 @@ export interface NormalizedAccount {
   displayName: string | null;
   avatarUrl: string | null;
   followers: number | null;
-  metadata: Record<string, unknown>;
+  metadata: JsonObject;
 }
 
 export interface FetchResult {
@@ -57,5 +59,5 @@ export interface FetchResult {
   comments: NormalizedComment[];
   cursor: string | null;
   /** Provider-reported rate limit / quota information, when available. */
-  quotaNote?: string;
+  quotaNote?: string | undefined;
 }

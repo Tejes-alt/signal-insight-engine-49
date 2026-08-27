@@ -6,6 +6,7 @@
  * a workspace id, which is authorized on every read and write.
  */
 
+import type { JsonObject } from "../json";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export interface Workspace {
@@ -114,7 +115,7 @@ export async function audit(
   actorId: string,
   action: string,
   target: string | null,
-  details: Record<string, unknown> = {},
+  details: JsonObject = {},
 ): Promise<void> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   await supabaseAdmin

@@ -18,6 +18,7 @@ import type { SentimentLabel } from "../analytics/sentiment";
 
 export interface IntelligenceFilters {
   hours: number;
+  /* eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents */
   providers?: string[];
   accountIds?: string[];
   sentiment?: SentimentLabel[];

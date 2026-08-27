@@ -192,7 +192,7 @@ export interface AnomalyFinding {
   deviation: number;
   detectedAt: string;
   headline: string;
-  scope: Record<string, unknown>;
+  scope: JsonObject;
   evidence: { postIds: string[]; window: string; method: string };
 }
 

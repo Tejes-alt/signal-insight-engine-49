@@ -3,6 +3,7 @@
  * Owns provider configuration status, source creation, and lifecycle actions.
  */
 
+import type { JsonObject } from "../json";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { PROVIDER_LIST, type ProviderId } from "../providers/registry";
@@ -49,7 +50,7 @@ export interface SourceRow {
   lastSyncedAt: string | null;
   nextSyncAt: string | null;
   createdAt: string;
-  metadata: Record<string, unknown>;
+  metadata: JsonObject;
 }
 
 export async function listSources(supabase: SupabaseClient, orgId: string): Promise<SourceRow[]> {
@@ -142,7 +143,7 @@ export async function updateSource(
     .eq("id", sourceId)
     .eq("org_id", orgId);
   if (error) throw new Error(error.message);
-  await audit(orgId, userId, "source.updated", sourceId, patch as Record<string, unknown>);
+  await audit(orgId, userId, "source.updated", sourceId, patch as JsonObject);
 }
 
 export async function removeSource(
