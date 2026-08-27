@@ -26,7 +26,8 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTheme } from "@/components/theme-provider";
-import { RANGES, useDashboard } from "@/hooks/use-dashboard";
+import { RANGES } from "@/hooks/use-dashboard";
+import { useDashboard } from "@/hooks/dashboard-context";
 import { cn } from "@/lib/utils";
 
 const NAV = [

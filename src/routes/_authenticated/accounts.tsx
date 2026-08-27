@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DashboardProvider, useDashboard } from "@/hooks/use-dashboard";
+import { useDashboard } from "@/hooks/dashboard-context";
 import {
   completeConnection,
   disconnectAccount,
@@ -30,7 +30,7 @@ import { friendlyConnectionError, friendlySyncError, type FriendlyError } from "
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/accounts")({
-  component: AccountsRoute,
+  component: AccountsPage,
   head: () => ({
     meta: [
       { title: "Connect your socials · SocialPulse" },
@@ -49,14 +49,6 @@ export const Route = createFileRoute("/_authenticated/accounts")({
     ],
   }),
 });
-
-function AccountsRoute() {
-  return (
-    <DashboardProvider>
-      <AccountsPage />
-    </DashboardProvider>
-  );
-}
 
 const STEPS = [
   "Connecting your account…",

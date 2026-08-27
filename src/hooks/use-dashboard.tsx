@@ -1,7 +1,6 @@
 import {
   createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -13,7 +12,11 @@ import { toast } from "sonner";
 import { getWorkspace } from "@/lib/workspace.functions";
 import { getDashboard } from "@/lib/dashboard.functions";
 import { getSocialState, syncAllAccounts, syncStaleAccounts } from "@/lib/social.functions";
-import type { AnalyticsBundle } from "@/lib/analytics/dashboard";
+import {
+  DashboardContext,
+  type DashboardContextValue,
+  type SocialConnectionView,
+} from "@/hooks/dashboard-context";
 
 import { platformName } from "@/lib/social/platforms";
 
@@ -27,48 +30,6 @@ export const RANGES = [
 
 const DEMO_KEY = "socialpulse.demo";
 const RANGE_KEY = "socialpulse.range";
-
-export interface SocialConnectionView {
-  id: string;
-  platform: string;
-  handle: string | null;
-  displayName: string | null;
-  avatarUrl: string | null;
-  status: string;
-  permissions: string[];
-  syncStatus: string;
-  syncError: string | null;
-  lastSyncedAt: string | null;
-  nextSyncAt: string | null;
-  metrics: Record<string, { value: number | null; status: string; reason?: string }>;
-}
-
-
-interface DashboardContextValue {
-  orgId: string | null;
-  email: string | null;
-  workspaceName: string | null;
-  isAdmin: boolean;
-  demo: boolean;
-  setDemo: (value: boolean) => void;
-  rangeDays: number;
-  setRangeDays: (days: number) => void;
-  bundle: AnalyticsBundle | undefined;
-  isLoading: boolean;
-  error: Error | null;
-  connections: SocialConnectionView[];
-  connectedCount: number;
-  /** Per-platform readiness of the official integrations on this installation. */
-  integrations: { platform: string; configured: boolean; missing: string[] }[];
-  integrationsReady: boolean;
-  lastSyncedAt: string | null;
-  syncing: boolean;
-  syncAll: () => Promise<void>;
-  refetch: () => void;
-}
-
-
-const DashboardContext = createContext<DashboardContextValue | null>(null);
 
 export function DashboardProvider({ children }: { children: ReactNode }) {
   const workspaceFn = useServerFn(getWorkspace);
@@ -235,34 +196,5 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   return <DashboardContext.Provider value={value}>{children}</DashboardContext.Provider>;
 }
 
-/** Context if a provider is mounted above; null otherwise. */
-export function useOptionalDashboard(): DashboardContextValue | null {
-  return useContext(DashboardContext);
-}
-
-/**
- * Guarantees the page has dashboard context even if the pathless layout that
- * normally provides it has not mounted yet (client-only layout + route code
- * splitting can render a leaf before its layout provider on first paint).
- * Mounts the provider only when one is not already present, so state stays
- * shared for normal navigations.
- */
-export function withDashboard<P extends object>(
-  Component: (props: P) => ReactNode,
-): (props: P) => ReactNode {
-  return function DashboardBoundary(props: P) {
-    const ctx = useContext(DashboardContext);
-    if (ctx) return <Component {...props} />;
-    return (
-      <DashboardProvider>
-        <Component {...props} />
-      </DashboardProvider>
-    );
-  };
-}
-
-export function useDashboard(): DashboardContextValue {
-  const ctx = useContext(DashboardContext);
-  if (!ctx) throw new Error("useDashboard must be used inside DashboardProvider");
-  return ctx;
-}
+export { useDashboard } from "@/hooks/dashboard-context";
+export type { DashboardContextValue, SocialConnectionView } from "@/hooks/dashboard-context";

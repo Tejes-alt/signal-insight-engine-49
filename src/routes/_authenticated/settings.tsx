@@ -8,14 +8,14 @@ import { AppShell, PageHeader } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/components/theme-provider";
-import { useDashboard, withDashboard } from "@/hooks/use-dashboard";
+import { useDashboard } from "@/hooks/dashboard-context";
 import { getPreferences, purgeWorkspaceData, savePreferences } from "@/lib/social.functions";
 import { PLATFORM_LIST } from "@/lib/social/platforms";
 import { RANGES } from "@/hooks/use-dashboard";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/settings")({
-  component: withDashboard(SettingsPage),
+  component: SettingsPage,
   head: () => ({
     meta: [
       { title: "Settings · SocialPulse" },
