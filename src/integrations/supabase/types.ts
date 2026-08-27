@@ -929,13 +929,16 @@ export type Database = {
           id: string
           last_synced_at: string | null
           metadata: Json
+          next_sync_at: string | null
           org_id: string
           permissions: Json
           platform: string
           social_profile_id: string
           status: string
+          sync_attempts: number
           sync_completed_at: string | null
           sync_error: string | null
+          sync_interval_minutes: number
           sync_started_at: string | null
           sync_status: string
           updated_at: string
@@ -950,13 +953,16 @@ export type Database = {
           id?: string
           last_synced_at?: string | null
           metadata?: Json
+          next_sync_at?: string | null
           org_id: string
           permissions?: Json
           platform: string
           social_profile_id: string
           status?: string
+          sync_attempts?: number
           sync_completed_at?: string | null
           sync_error?: string | null
+          sync_interval_minutes?: number
           sync_started_at?: string | null
           sync_status?: string
           updated_at?: string
@@ -971,13 +977,16 @@ export type Database = {
           id?: string
           last_synced_at?: string | null
           metadata?: Json
+          next_sync_at?: string | null
           org_id?: string
           permissions?: Json
           platform?: string
           social_profile_id?: string
           status?: string
+          sync_attempts?: number
           sync_completed_at?: string | null
           sync_error?: string | null
+          sync_interval_minutes?: number
           sync_started_at?: string | null
           sync_status?: string
           updated_at?: string
