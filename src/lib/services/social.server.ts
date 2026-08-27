@@ -66,8 +66,10 @@ export interface ConnectionRow {
   syncStartedAt: string | null;
   syncCompletedAt: string | null;
   createdAt: string;
+  nextSyncAt: string | null;
   metrics: StoredMetrics;
 }
+
 
 /* ------------------------------------------------------------------ */
 /* Provider profile (one isolated profile per workspace)               */
@@ -186,7 +188,9 @@ export async function listConnections(orgId: string): Promise<ConnectionRow[]> {
       syncStartedAt: row.sync_started_at as string | null,
       syncCompletedAt: row.sync_completed_at as string | null,
       createdAt: row.created_at as string,
+      nextSyncAt: (row as { next_sync_at?: string | null }).next_sync_at ?? null,
       metrics,
+
     };
   });
 }
