@@ -8,7 +8,7 @@ import { buildAuthUrl, expiryFromSeconds, form, requestJson } from "../http.serv
 import {
   absent,
   IntegrationNotConfiguredError,
-  pkceUnsupportedNote,
+  restrictedNote,
   value,
   type AuthorizeRequest,
   type CallbackRequest,
@@ -157,7 +157,7 @@ export const xProvider: SocialProvider = {
     if (m.followers_count != null) metrics.followers = value(m.followers_count);
     if (m.following_count != null) metrics.following = value(m.following_count);
     if (m.tweet_count != null) metrics.posts = value(m.tweet_count);
-    metrics.impressions = absent("not_authorized", pkceUnsupportedNote("X", "impression totals"));
+    metrics.impressions = absent("not_authorized", restrictedNote("X", "impression totals"));
     metrics.reach = absent("not_supported", "X does not report reach.");
     metrics.saves = absent("not_supported", "Bookmark counts are only available on paid API tiers.");
     return { metrics, history: [] };
@@ -194,7 +194,7 @@ export const xProvider: SocialProvider = {
         shares: reposts === null ? absent("unavailable", "Not returned for this post.") : value(reposts),
         impressions:
           impressions === null
-            ? absent("not_authorized", pkceUnsupportedNote("X", "impressions"))
+            ? absent("not_authorized", restrictedNote("X", "impressions"))
             : value(impressions),
         saves:
           pm.bookmark_count === undefined
