@@ -57,7 +57,7 @@ function Stat({
       </div>
       <div className="mt-3 font-display text-3xl font-semibold tracking-tight">
         {value === null ? (
-          <span className="text-base font-normal text-muted-foreground">Requires account connection</span>
+          <span className="text-base font-normal text-muted-foreground">Not recorded yet</span>
         ) : (
           <>
             <AnimatedNumber value={value} format={suffix ? (n) => n.toFixed(1) : formatNumber} />
