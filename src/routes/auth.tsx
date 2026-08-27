@@ -120,15 +120,27 @@ function AuthPage() {
     mode === "signin" ? "Welcome back" : mode === "signup" ? "Create your account" : "Reset your password";
 
   return (
-    <div className="aurora flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="panel gradient-border animate-rise w-full max-w-md p-7 sm:p-8">
+    <div className="aurora grain relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
+      <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" aria-hidden>
+        <span className="absolute left-1/2 top-1/2 size-[26rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/15 halo-ring" />
+        <span
+          className="absolute left-1/2 top-1/2 size-[26rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/10 halo-ring"
+          style={{ animationDelay: "1.8s" }}
+        />
+      </div>
+      <div className="panel gradient-border animate-rise relative w-full max-w-md p-7 sm:p-8">
         <Link
           to="/"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="size-3.5" /> Back to SocialPulse
         </Link>
-        <h1 className="mt-6 font-display text-2xl font-bold text-foreground">{title}</h1>
+        <div className="mt-6 flex flex-col leading-none">
+          <span className="font-display text-[0.66rem] font-semibold tracking-[0.34em] text-muted-foreground">SOCIAL</span>
+          <span className="gradient-text font-display text-2xl font-bold tracking-[0.16em]">PULSE</span>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">Your social intelligence, in one place.</p>
+        <h1 className="mt-5 font-display text-2xl font-bold text-foreground">{title}</h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           {mode === "forgot"
             ? "Enter your SocialPulse email and we'll send you a link to choose a new password."

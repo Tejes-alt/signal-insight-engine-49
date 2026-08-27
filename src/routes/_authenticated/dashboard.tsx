@@ -1,11 +1,22 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Activity, Eye, Heart, Layers, Plus, Users } from "lucide-react";
-import { AppShell, PageHeader } from "@/components/app-shell";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Activity, Download, Eye, Heart, Layers, Plus, RefreshCw, Upload, Users } from "lucide-react";
+import { AppShell } from "@/components/app-shell";
 import { SimpleArea, SimpleBars } from "@/components/public-charts";
 import { AnimatedNumber, EmptyState, SkeletonCard, formatNumber } from "@/components/metrics";
 import { PLATFORM_ACCENT, PlatformMark, platformName } from "@/components/platform";
 import { Button } from "@/components/ui/button";
 import { useDashboard } from "@/hooks/dashboard-context";
+import { PulseRing } from "@/components/pulse-ring";
+import { PlatformOrbit } from "@/components/platform-orbit";
+import {
+  ActivityFeed,
+  DataHealth,
+  Milestones,
+  Moments,
+  SystemStatus,
+  Why,
+  headlineCopy,
+} from "@/components/dashboard-widgets";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
@@ -35,6 +46,8 @@ function Stat({
   icon,
   accent,
   note,
+  why,
+  to,
 }: {
   label: string;
   value: number | null;
@@ -42,15 +55,37 @@ function Stat({
   icon: React.ReactNode;
   accent?: string;
   note?: string;
+  why?: string;
+  to?: string;
 }) {
+  const navigate = useNavigate();
   return (
-    <div className="panel panel-hover group relative overflow-hidden p-5">
+    <div
+      role={to ? "button" : undefined}
+      tabIndex={to ? 0 : undefined}
+      onClick={to ? () => void navigate({ to }) : undefined}
+      onKeyDown={
+        to
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                void navigate({ to });
+              }
+            }
+          : undefined
+      }
+      className="panel panel-hover press group relative overflow-hidden p-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[clickable=true]:cursor-pointer"
+      data-clickable={to ? "true" : "false"}
+    >
       <div
         className="pointer-events-none absolute -right-12 -top-12 size-32 rounded-full opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-45"
         style={{ background: accent ?? "var(--color-primary)" }}
       />
       <div className="flex items-start justify-between gap-3">
-        <span className="label-mono">{label}</span>
+        <span className="flex items-center gap-1.5">
+          <span className="label-mono">{label}</span>
+          {why ? <Why>{why}</Why> : null}
+        </span>
         <span className="grid size-8 place-items-center rounded-lg bg-secondary/70 text-muted-foreground transition-colors group-hover:text-foreground">
           {icon}
         </span>
@@ -70,22 +105,54 @@ function Stat({
   );
 }
 
+function greeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+function friendlyName(name: string | null): string | null {
+  if (!name) return null;
+  const cleaned = name.replace(/['’]?s?\s*workspace$/i, "").trim();
+  return cleaned.length > 0 ? cleaned : null;
+}
+
 function DashboardPage() {
-  const { overview, accounts, isLoading, rangeDays } = useDashboard();
+  const { overview, accounts, isLoading, lastCheckedAt, refreshing, refreshAll, workspaceName } = useDashboard();
 
   return (
     <AppShell>
-      <PageHeader
-        title="Overview"
-        description={`Your public presence across every tracked handle, last ${rangeDays} days.`}
-        actions={
-          <Button asChild variant="outline" size="sm">
+      <header className="animate-rise mb-7">
+        <p className="label-mono">{greeting()}{friendlyName(workspaceName) ? `, ${friendlyName(workspaceName)}` : ""}.</p>
+        <h1 className="mt-2 font-display text-3xl font-bold tracking-tight md:text-4xl">
+          Your social presence, <span className="gradient-text">quantified</span>.
+        </h1>
+        <div className="mt-3">
+          <SystemStatus lastCheckedAt={lastCheckedAt} refreshing={refreshing} />
+        </div>
+        <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{headlineCopy(overview)}</p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <Button asChild size="sm" variant="outline" className="press">
             <Link to="/accounts">
               <Plus className="size-4" /> Add account
             </Link>
           </Button>
-        }
-      />
+          <Button asChild size="sm" variant="outline" className="press">
+            <Link to="/import">
+              <Upload className="size-4" /> Import analytics
+            </Link>
+          </Button>
+          <Button size="sm" variant="outline" className="press" disabled={refreshing} onClick={() => void refreshAll()}>
+            <RefreshCw className={refreshing ? "size-4 animate-spin" : "size-4"} /> Refresh data
+          </Button>
+          <Button asChild size="sm" variant="ghost" className="press">
+            <Link to="/import">
+              <Download className="size-4" /> Export report
+            </Link>
+          </Button>
+        </div>
+      </header>
 
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -111,6 +178,8 @@ function DashboardPage() {
               label="Total followers"
               value={overview.totals.followers}
               icon={<Users className="size-4" />}
+              to="/analytics"
+              why="Sum of the follower counts recorded for every profile you track."
               note={
                 overview.totals.followerGrowth === null
                   ? "Tracking started recently — growth appears automatically."
@@ -124,6 +193,8 @@ function DashboardPage() {
               value={overview.totals.publicEngagement}
               icon={<Heart className="size-4" />}
               accent="var(--color-instagram)"
+              to="/analytics"
+              why="Likes and comments counted on the public content SocialPulse retrieved or you imported."
               note="Likes and comments on retrieved public content."
             />
             <Stat
@@ -131,6 +202,8 @@ function DashboardPage() {
               value={overview.totals.content}
               icon={<Layers className="size-4" />}
               accent="var(--color-youtube)"
+              to="/content"
+              why="Number of content records currently stored for your profiles."
             />
             <Stat
               label="Avg engagement rate"
@@ -138,6 +211,8 @@ function DashboardPage() {
               suffix="%"
               icon={<Eye className="size-4" />}
               accent="var(--color-tiktok)"
+              to="/analytics"
+              why="Calculated from the engagement metrics available in your recorded data, relative to followers."
             />
           </div>
 
@@ -228,6 +303,32 @@ function DashboardPage() {
                 <p className="mt-6 text-sm text-muted-foreground">No public post timestamps retrieved yet.</p>
               )}
             </section>
+          </div>
+
+          <div className="grid gap-5 xl:grid-cols-3">
+            <section className="panel ambient relative overflow-hidden p-5 xl:col-span-2">
+              <h2 className="label-mono">Your ecosystem</h2>
+              <PlatformOrbit accounts={accounts} />
+            </section>
+            <section className="panel p-5">
+              <h2 className="label-mono">Audience pulse</h2>
+              <PulseRing total={overview.totals.followers} />
+              <p className="text-center text-xs text-muted-foreground">
+                Measured from your most recent recorded snapshots.
+              </p>
+            </section>
+          </div>
+
+          <Moments overview={overview} />
+
+          <div className="grid gap-5 xl:grid-cols-3">
+            <div className="xl:col-span-2">
+              <ActivityFeed accounts={accounts} />
+            </div>
+            <div className="space-y-5">
+              <DataHealth overview={overview} />
+              <Milestones followers={overview.totals.followers} />
+            </div>
           </div>
 
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
