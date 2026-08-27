@@ -1,41 +1,46 @@
-import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, Loader2, Lock, RefreshCw, ShieldCheck, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  Loader2,
+  Plus,
+  RefreshCw,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/app-shell";
-import { EmptyState } from "@/components/metrics";
-import { PlatformMark } from "@/components/platform";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useDashboard } from "@/hooks/use-dashboard";
-import { createPublicSource, deleteSource, getSources, syncSource } from "@/lib/sources.functions";
 import {
-  CAPABILITY_LABELS,
-  CAPABILITY_STATE_LABELS,
-  PROVIDER_LIST,
-  type CapabilityKey,
-  type CapabilityState,
-  type ProviderId,
-} from "@/lib/providers/registry";
+  completeConnection,
+  disconnectAccount,
+  startConnection,
+  syncAccount,
+} from "@/lib/social.functions";
+import { PLATFORM_LIST, type PlatformId } from "@/lib/social/platforms";
+import { CONNECTION_STATUS_LABELS, type ConnectionStatus } from "@/lib/social/model";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/accounts")({
   component: AccountsPage,
   head: () => ({
     meta: [
-      { title: "Accounts · Pulse Social Analytics" },
+      { title: "Connect your socials · SocialPulse" },
       {
         name: "description",
         content:
-          "Connect your social accounts through each platform's official authorization flow. Pulse never asks for platform passwords.",
+          "Connect your social accounts through each platform's official authorization flow. SocialPulse never asks for platform passwords.",
       },
-      { property: "og:title", content: "Accounts · Pulse Social Analytics" },
+      { property: "og:title", content: "Connect your socials · SocialPulse" },
       {
         property: "og:description",
-        content: "Official OAuth connections only — no passwords are ever requested or stored.",
+        content: "Official authorization only — no social passwords are ever requested or stored.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -43,55 +48,118 @@ export const Route = createFileRoute("/_authenticated/accounts")({
   }),
 });
 
-const STATE_STYLE: Record<CapabilityState, string> = {
-  available: "text-success",
-  requires_authorization: "text-primary",
-  requires_elevated_access: "text-warning",
-  unsupported: "text-muted-foreground line-through decoration-muted-foreground/40",
+const STEPS = [
+  "Connecting your account…",
+  "Fetching your analytics…",
+  "Analyzing your content…",
+  "Your dashboard is ready.",
+];
+
+function relativeTime(iso: string | null): string {
+  if (!iso) return "never";
+  const seconds = Math.max(1, Math.round((Date.now() - Date.parse(iso)) / 1000));
+  if (seconds < 60) return `${seconds} seconds ago`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  return new Date(iso).toLocaleString();
+}
+
+const STATUS_STYLE: Record<string, string> = {
+  synced: "text-success",
+  connected: "text-success",
+  syncing: "text-primary",
+  pending: "text-warning",
+  needs_reconnect: "text-warning",
+  permission_error: "text-destructive",
+  unavailable: "text-destructive",
 };
 
 function AccountsPage() {
-  const { orgId, refetch } = useDashboard();
+  const { orgId, connections, providerConfigured, linkingConfigured, refetch } = useDashboard();
   const queryClient = useQueryClient();
-  const sourcesFn = useServerFn(getSources);
-  const createFn = useServerFn(createPublicSource);
-  const syncFn = useServerFn(syncSource);
-  const deleteFn = useServerFn(deleteSource);
+  const navigate = useNavigate();
 
-  const [handles, setHandles] = useState<Partial<Record<ProviderId, string>>>({});
+  const startFn = useServerFn(startConnection);
+  const completeFn = useServerFn(completeConnection);
+  const syncFn = useServerFn(syncAccount);
+  const disconnectFn = useServerFn(disconnectAccount);
 
-  const sourcesQuery = useQuery({
-    queryKey: ["sources", orgId],
-    queryFn: () => sourcesFn({ data: { orgId: orgId! } }),
-    enabled: Boolean(orgId),
-  });
+  const [handles, setHandles] = useState<Partial<Record<PlatformId, string>>>({});
+  const [busy, setBusy] = useState<PlatformId | null>(null);
+  const [step, setStep] = useState<number | null>(null);
 
   const invalidate = () => {
-    void queryClient.invalidateQueries({ queryKey: ["sources", orgId] });
+    void queryClient.invalidateQueries({ queryKey: ["social", orgId] });
+    void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     refetch();
   };
 
+  // Return leg of the official authorization flow.
+  useEffect(() => {
+    if (!orgId) return;
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("connected")) return;
+    void (async () => {
+      setStep(0);
+      try {
+        setStep(1);
+        await completeFn({ data: { orgId } });
+        setStep(2);
+        invalidate();
+        setStep(3);
+        toast.success("Account connected");
+        setTimeout(() => {
+          setStep(null);
+          void navigate({ to: "/dashboard" });
+        }, 1200);
+      } catch (error) {
+        setStep(null);
+        toast.error("We could not finish the connection", {
+          description: error instanceof Error ? error.message : "Please try connecting again.",
+        });
+      } finally {
+        window.history.replaceState({}, "", "/accounts");
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgId]);
+
   const connect = useMutation({
-    mutationFn: (vars: { provider: ProviderId; input: string }) =>
-      createFn({ data: { orgId: orgId!, provider: vars.provider, input: vars.input } }),
-    onSuccess: () => {
-      toast.success("Account added", { description: "Fetching data from the platform's official API." });
-      invalidate();
+    mutationFn: async (platform: PlatformId) => {
+      const returnUrl = `${window.location.origin}/accounts?connected=1&platform=${platform}`;
+      return startFn({
+        data: {
+          orgId: orgId!,
+          platform,
+          handle: handles[platform]?.trim() || null,
+          returnUrl,
+        },
+      });
     },
-    onError: (error: Error) => toast.error("Could not connect", { description: error.message }),
+    onMutate: (platform: PlatformId) => setBusy(platform),
+    onSettled: () => setBusy(null),
+    onSuccess: ({ url }) => {
+      window.location.href = url;
+    },
+    onError: (error: Error) =>
+      toast.error("Could not start the authorization", { description: error.message }),
   });
 
   const sync = useMutation({
-    mutationFn: (sourceId: string) => syncFn({ data: { orgId: orgId!, sourceId } }),
-    onSuccess: () => {
-      toast.success("Sync complete");
+    mutationFn: (connectionId: string) => syncFn({ data: { orgId: orgId!, connectionId } }),
+    onSuccess: (outcome) => {
+      if (outcome.ok) toast.success("Account synced");
+      else toast.error("Sync failed", { description: outcome.error });
       invalidate();
     },
     onError: (error: Error) => toast.error("Sync failed", { description: error.message }),
   });
 
-  const remove = useMutation({
-    mutationFn: (sourceId: string) => deleteFn({ data: { orgId: orgId!, sourceId, deleteData: true } }),
+  const disconnect = useMutation({
+    mutationFn: (vars: { connectionId: string; deleteData: boolean }) =>
+      disconnectFn({ data: { orgId: orgId!, ...vars } }),
     onSuccess: () => {
       toast.success("Account disconnected");
       invalidate();
@@ -99,161 +167,175 @@ function AccountsPage() {
     onError: (error: Error) => toast.error("Could not disconnect", { description: error.message }),
   });
 
-  const sources = sourcesQuery.data?.sources ?? [];
-  const runtime = sourcesQuery.data?.runtime ?? [];
+  const byPlatform = new Map(connections.map((c) => [c.platform, c]));
 
   return (
     <AppShell>
       <PageHeader
-        title="Accounts"
-        description="Connect each platform through its own official authorization flow."
+        title="Connect your socials"
+        description="Connect your accounts securely and bring all your analytics into one place."
       />
 
-      <div className="panel gradient-border animate-rise mb-6 flex items-start gap-4 p-5">
+      {step !== null ? (
+        <div className="panel gradient-border animate-rise mb-6 p-6">
+          <div className="flex items-center gap-3">
+            <Loader2 className="size-5 animate-spin text-primary" />
+            <span className="font-display text-lg font-semibold">{STEPS[step]}</span>
+          </div>
+          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-secondary">
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{ width: `${((step + 1) / STEPS.length) * 100}%`, background: "var(--gradient-brand)" }}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      <div className="panel animate-rise mb-6 flex items-start gap-4 p-5">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-success/12 text-success">
           <ShieldCheck className="size-5" />
         </span>
         <div>
           <h2 className="font-display font-semibold">We never ask for your social passwords</h2>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-            Pulse only uses each platform's official API and OAuth authorization screens. Access tokens are stored
-            server-side, encrypted, and can be revoked at any time from the platform itself. If a platform's API does
-            not expose a metric, the dashboard says so instead of estimating it.
+            Authorization always happens on the platform's own website. SocialPulse only receives the permissions you
+            approve, tokens stay server-side, and you can disconnect any account at any time.
           </p>
         </div>
       </div>
 
-      <section className="mb-8">
-        <h2 className="mb-3 font-display text-lg font-semibold">Connected</h2>
-        {sourcesQuery.isLoading ? (
-          <div className="skeleton h-24" />
-        ) : sources.length === 0 ? (
-          <EmptyState
-            title="No accounts connected"
-            body="Add a platform below. Until then, demo mode shows what the dashboard looks like with data."
-            icon={<Lock className="size-5" />}
-          />
-        ) : (
-          <div className="stagger grid gap-4 md:grid-cols-2">
-            {sources.map((source) => (
-              <article key={source.id} className="panel panel-hover flex items-center gap-3 p-4">
-                <PlatformMark provider={source.provider as ProviderId} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold">{source.displayName ?? source.handle ?? source.externalId}</p>
-                  <p className="label-mono truncate">
-                    {source.syncStatus}
-                    {source.lastSyncedAt ? ` · synced ${new Date(source.lastSyncedAt).toLocaleString()}` : ""}
-                  </p>
-                  {source.lastError ? (
-                    <p className="mt-1 text-xs text-destructive">{source.lastError}</p>
-                  ) : null}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => sync.mutate(source.id)}
-                  disabled={sync.isPending}
-                  aria-label="Sync now"
-                >
-                  <RefreshCw className={cn("size-4", sync.isPending && "animate-spin")} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => remove.mutate(source.id)}
-                  disabled={remove.isPending}
-                  aria-label="Disconnect"
-                >
-                  <Trash2 className="size-4 text-destructive" />
-                </Button>
-              </article>
-            ))}
+      {!providerConfigured || !linkingConfigured ? (
+        <div className="panel animate-rise mb-6 flex items-start gap-4 border-warning/40 p-5">
+          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warning" />
+          <div>
+            <h2 className="font-display font-semibold">Social integration setup required</h2>
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+              An administrator still needs to finish configuring the social integration provider for this
+              installation. Account connection stays disabled until then — Demo Mode remains fully available so you can
+              explore the product.
+            </p>
           </div>
-        )}
-      </section>
-
-      <section>
-        <h2 className="mb-3 font-display text-lg font-semibold">Available platforms</h2>
-        <div className="stagger grid gap-4 lg:grid-cols-2">
-          {PROVIDER_LIST.map((provider) => {
-            const status = runtime.find((r) => r.id === provider.id);
-            const publicReady = status?.publicModeReady ?? false;
-            const oauthReady = status?.oauthReady ?? false;
-            return (
-              <article key={provider.id} className="panel panel-hover p-5">
-                <div className="flex items-start gap-3">
-                  <PlatformMark provider={provider.id} size="lg" />
-                  <div className="min-w-0 flex-1">
-                    <h3 className="font-display text-lg font-semibold">{provider.name}</h3>
-                    <p className="text-xs text-muted-foreground">{provider.tagline}</p>
-                  </div>
-                  {oauthReady ? (
-                    <span className="label-mono flex items-center gap-1 text-success">
-                      <CheckCircle2 className="size-3.5" /> OAuth ready
-                    </span>
-                  ) : (
-                    <span className="label-mono">Setup required</span>
-                  )}
-                </div>
-
-                {publicReady ? (
-                  <form
-                    className="mt-4 flex gap-2"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      const value = (handles[provider.id] ?? "").trim();
-                      if (value.length < 2) return;
-                      connect.mutate({ provider: provider.id, input: value });
-                    }}
-                  >
-                    <Input
-                      value={handles[provider.id] ?? ""}
-                      onChange={(e) => setHandles((h) => ({ ...h, [provider.id]: e.target.value }))}
-                      placeholder={provider.modes.public.inputPlaceholder}
-                      aria-label={provider.modes.public.inputLabel}
-                    />
-                    <Button type="submit" disabled={connect.isPending}>
-                      {connect.isPending ? <Loader2 className="size-4 animate-spin" /> : "Add"}
-                    </Button>
-                  </form>
-                ) : (
-                  <div className="mt-4 rounded-xl border border-border bg-secondary/40 p-3">
-                    <p className="text-xs leading-relaxed text-muted-foreground">
-                      Connecting {provider.name} requires app credentials for its official API
-                      {provider.modes.oauth.requiredEnv.length > 0
-                        ? ` (${provider.modes.oauth.requiredEnv.join(", ")})`
-                        : ""}
-                      . Once those are configured, the Connect button opens {provider.name}'s own authorization screen —
-                      you'll never type your {provider.name} password here.
-                    </p>
-                    <Button className="mt-3" variant="outline" size="sm" disabled>
-                      Connect {provider.name}
-                    </Button>
-                  </div>
-                )}
-
-                <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5 border-t border-border pt-3">
-                  {(Object.keys(provider.capabilities) as CapabilityKey[]).slice(0, 8).map((key) => {
-                    const state = provider.capabilities[key];
-                    return (
-                      <li key={key}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className={cn("cursor-help text-xs font-medium", STATE_STYLE[state])}>
-                              {CAPABILITY_LABELS[key]}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>{CAPABILITY_STATE_LABELS[state]}</TooltipContent>
-                        </Tooltip>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </article>
-            );
-          })}
         </div>
-      </section>
+      ) : null}
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {PLATFORM_LIST.map((platform, index) => {
+          const connection = byPlatform.get(platform.id);
+          const status = (connection?.status ?? "pending") as ConnectionStatus;
+          const isConnected = connection && (status === "connected" || status === "synced");
+          return (
+            <article
+              key={platform.id}
+              className="panel animate-rise group flex flex-col gap-4 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-soft)]"
+              style={{ animationDelay: `${index * 35}ms` }}
+            >
+              <header className="flex items-start gap-3">
+                <span
+                  className="grid size-11 shrink-0 place-items-center rounded-xl font-display text-sm font-bold"
+                  style={{ background: `color-mix(in oklab, ${platform.accent} 18%, transparent)`, color: platform.accent }}
+                >
+                  {platform.mark}
+                </span>
+                <div className="min-w-0">
+                  <h3 className="font-display font-semibold">{platform.name}</h3>
+                  <p className="text-xs leading-relaxed text-muted-foreground">{platform.description}</p>
+                </div>
+              </header>
+
+              {isConnected ? (
+                <>
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="size-4 text-success" />
+                    <span className="font-semibold text-success">Connected</span>
+                    {connection?.handle ? (
+                      <span className="truncate text-muted-foreground">
+                        {platform.handlePrefix}
+                        {connection.handle}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Last synced {relativeTime(connection?.lastSyncedAt ?? null)}
+                  </p>
+                  {connection?.syncError ? (
+                    <p className="text-xs text-destructive">{connection.syncError}</p>
+                  ) : null}
+                  <div className="mt-auto flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="flex-1"
+                      disabled={sync.isPending}
+                      onClick={() => sync.mutate(connection!.id)}
+                    >
+                      <RefreshCw className={cn("mr-1.5 size-3.5", sync.isPending && "animate-spin")} />
+                      Sync now
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        const deleteData = window.confirm(
+                          `Disconnect ${platform.name}?\n\nThis removes SocialPulse's access to this account.\n\nOK — also delete the analytics already stored for it.\nCancel-then-confirm — keep the stored history.`,
+                        );
+                        disconnect.mutate({ connectionId: connection!.id, deleteData });
+                      }}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="label-mono mb-1.5 block text-xs text-muted-foreground" htmlFor={`h-${platform.id}`}>
+                      {platform.handleLabel}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      {platform.handlePrefix ? (
+                        <span className="text-sm text-muted-foreground">{platform.handlePrefix}</span>
+                      ) : null}
+                      <Input
+                        id={`h-${platform.id}`}
+                        value={handles[platform.id] ?? ""}
+                        placeholder={platform.handlePlaceholder}
+                        onChange={(event) =>
+                          setHandles((prev) => ({ ...prev, [platform.id]: event.target.value }))
+                        }
+                      />
+                    </div>
+                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                      A username alone only identifies the account. Connect {platform.name} to unlock your personal
+                      analytics.
+                    </p>
+                  </div>
+                  {connection && status !== "pending" ? (
+                    <p className={cn("text-xs font-semibold", STATUS_STYLE[status])}>
+                      {CONNECTION_STATUS_LABELS[status]}
+                      {connection.syncError ? ` — ${connection.syncError}` : ""}
+                    </p>
+                  ) : null}
+                  <Button
+                    className="mt-auto w-full"
+                    disabled={!providerConfigured || !linkingConfigured || busy === platform.id}
+                    onClick={() => connect.mutate(platform.id)}
+                  >
+                    {busy === platform.id ? (
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                    ) : status === "needs_reconnect" ? (
+                      <RefreshCw className="mr-2 size-4" />
+                    ) : (
+                      <Plus className="mr-2 size-4" />
+                    )}
+                    {status === "needs_reconnect" ? `Reconnect ${platform.name}` : `Connect ${platform.name}`}
+                    <ArrowRight className="ml-auto size-4 opacity-60 transition-transform group-hover:translate-x-0.5" />
+                  </Button>
+                </>
+              )}
+            </article>
+          );
+        })}
+      </div>
     </AppShell>
   );
 }
