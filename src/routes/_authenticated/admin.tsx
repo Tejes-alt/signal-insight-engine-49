@@ -62,10 +62,13 @@ function AdminPage() {
       ) : query.data ? (
         <div className="grid gap-5 lg:grid-cols-2">
           <div className="lg:col-span-2">
-            {query.data.provider.apiKeyConfigured ? (
+            {query.data.configuredCount > 0 ? (
               <div className="panel animate-rise flex items-center gap-3 border-success/40 p-4 text-sm">
                 <CheckCircle2 className="size-5 shrink-0 text-success" />
-                <span className="font-medium">Social integrations ready ✓</span>
+                <span className="font-medium">
+                  Social integrations ready ✓ — {query.data.configuredCount} of{" "}
+                  {query.data.integrations.length} platforms
+                </span>
               </div>
             ) : (
               <div className="panel animate-rise flex items-start gap-3 border-warning/40 p-4 text-sm">
@@ -73,8 +76,8 @@ function AdminPage() {
                 <div>
                   <p className="font-medium">⚠ Configuration required</p>
                   <p className="text-muted-foreground">
-                    Add the social integration credential to the server-side secrets. End users never
-                    need to configure anything.
+                    No platform developer credentials are present on this installation yet. End users
+                    never configure anything — they only authorize their own accounts.
                   </p>
                 </div>
               </div>
@@ -82,27 +85,29 @@ function AdminPage() {
           </div>
 
           <section className="panel animate-rise p-6">
-            <h2 className="font-display mb-2 font-semibold">Configuration</h2>
-            <Check
-              ok={query.data.provider.apiKeyConfigured}
-              label="Social provider API key"
-              hint="AYRSHARE_API_KEY has not been added to the server secrets."
-            />
-            <Check
-              ok={query.data.provider.linkingConfigured}
-              label="Hosted account linking"
-              hint="The linking domain and private key are still missing."
-            />
+            <h2 className="font-display mb-2 font-semibold">Platform integrations</h2>
+            {query.data.integrations.map((integration) => (
+              <Check
+                key={integration.platform}
+                ok={integration.configured}
+                label={integration.name}
+                hint={`Waiting on server credentials: ${integration.missing.join(", ")}.`}
+              />
+            ))}
+          </section>
+
+          <section className="panel animate-rise p-6">
+            <h2 className="font-display mb-2 font-semibold">Pipeline</h2>
             <Check ok={query.data.database} label="Database connection" />
             <Check
-              ok={query.data.profileCreated}
-              label="Workspace provider profile"
-              hint="Created automatically on first sign-in once the provider key exists."
+              ok={query.data.connections > 0}
+              label="Connected accounts"
+              hint="No account has completed authorization yet."
             />
             <Check
               ok={query.data.backgroundSync.enabled}
               label="Background synchronization"
-              hint="Enabled automatically once the provider key exists."
+              hint="Starts automatically once an account is connected."
             />
             <Check
               ok={query.data.analyticsReady}
@@ -116,6 +121,7 @@ function AdminPage() {
                 : ""}
             </p>
           </section>
+
 
 
           <section className="panel animate-rise p-6">
