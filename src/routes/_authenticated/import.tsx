@@ -99,7 +99,9 @@ function ManualEntry() {
   const { orgId, accounts } = useDashboard();
   const queryClient = useQueryClient();
   const saveFn = useServerFn(saveManualSnapshot);
-  const [accountId, setAccountId] = useState<string | null>(accounts[0]?.id ?? null);
+  const [picked, setPicked] = useState<string | null>(null);
+  const accountId = picked ?? accounts[0]?.id ?? null;
+  const setAccountId = setPicked;
   const [date, setDate] = useState(today());
   const [values, setValues] = useState<Record<string, string>>({});
 
@@ -183,7 +185,9 @@ function FileImport() {
   const { orgId, accounts } = useDashboard();
   const queryClient = useQueryClient();
   const commitFn = useServerFn(commitFileImport);
-  const [accountId, setAccountId] = useState<string | null>(accounts[0]?.id ?? null);
+  const [picked, setPicked] = useState<string | null>(null);
+  const accountId = picked ?? accounts[0]?.id ?? null;
+  const setAccountId = setPicked;
   const [file, setFile] = useState<ParsedFile | null>(null);
   const [mapping, setMapping] = useState<Record<string, TargetField>>({});
   const inputRef = useRef<HTMLInputElement>(null);
@@ -391,7 +395,9 @@ function ScreenshotImport() {
   const queryClient = useQueryClient();
   const readFn = useServerFn(readScreenshotMetrics);
   const saveFn = useServerFn(saveManualSnapshot);
-  const [accountId, setAccountId] = useState<string | null>(accounts[0]?.id ?? null);
+  const [picked, setPicked] = useState<string | null>(null);
+  const accountId = picked ?? accounts[0]?.id ?? null;
+  const setAccountId = setPicked;
   const [preview, setPreview] = useState<string | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
   const [date, setDate] = useState(today());
