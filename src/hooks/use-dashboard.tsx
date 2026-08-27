@@ -48,6 +48,7 @@ interface DashboardContextValue {
   orgId: string | null;
   email: string | null;
   workspaceName: string | null;
+  isAdmin: boolean;
   demo: boolean;
   setDemo: (value: boolean) => void;
   rangeDays: number;
@@ -189,6 +190,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       orgId,
       email: workspaceQuery.data?.email ?? null,
       workspaceName: workspaceQuery.data?.workspace?.name ?? null,
+      isAdmin: workspaceQuery.data?.isAdmin ?? false,
       demo,
       setDemo,
       rangeDays,

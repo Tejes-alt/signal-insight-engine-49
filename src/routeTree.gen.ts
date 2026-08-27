@@ -20,6 +20,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedInsightsRouteImport } from './routes/_authenticated/insights'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedAdminIntegrationsRouteImport } from './routes/_authenticated/admin.integrations'
 import { Route as ApiPublicCronSyncRouteImport } from './routes/api/public/cron/sync'
 import { Route as ApiPublicSocialCallbackRouteImport } from './routes/api/public/social/callback'
 
@@ -77,6 +78,12 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminIntegrationsRoute =
+  AuthenticatedAdminIntegrationsRouteImport.update({
+    id: '/integrations',
+    path: '/integrations',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const ApiPublicCronSyncRoute = ApiPublicCronSyncRouteImport.update({
   id: '/api/public/cron/sync',
   path: '/api/public/cron/sync',
@@ -98,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/insights': typeof AuthenticatedInsightsRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/admin/integrations': typeof AuthenticatedAdminIntegrationsRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/api/public/cron/sync': typeof ApiPublicCronSyncRoute
   '/api/public/social/callback': typeof ApiPublicSocialCallbackRoute
@@ -111,6 +119,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/insights': typeof AuthenticatedInsightsRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/admin/integrations': typeof AuthenticatedAdminIntegrationsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/api/public/cron/sync': typeof ApiPublicCronSyncRoute
   '/api/public/social/callback': typeof ApiPublicSocialCallbackRoute
@@ -127,6 +136,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/insights': typeof AuthenticatedInsightsRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/admin/integrations': typeof AuthenticatedAdminIntegrationsRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/api/public/cron/sync': typeof ApiPublicCronSyncRoute
   '/api/public/social/callback': typeof ApiPublicSocialCallbackRoute
@@ -143,6 +153,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/insights'
     | '/settings'
+    | '/admin/integrations'
     | '/admin/'
     | '/api/public/cron/sync'
     | '/api/public/social/callback'
@@ -156,6 +167,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/insights'
     | '/settings'
+    | '/admin/integrations'
     | '/admin'
     | '/api/public/cron/sync'
     | '/api/public/social/callback'
@@ -171,6 +183,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/insights'
     | '/_authenticated/settings'
+    | '/_authenticated/admin/integrations'
     | '/_authenticated/admin/'
     | '/api/public/cron/sync'
     | '/api/public/social/callback'
@@ -263,6 +276,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/integrations': {
+      id: '/_authenticated/admin/integrations'
+      path: '/integrations'
+      fullPath: '/admin/integrations'
+      preLoaderRoute: typeof AuthenticatedAdminIntegrationsRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/api/public/cron/sync': {
       id: '/api/public/cron/sync'
       path: '/api/public/cron/sync'
@@ -281,10 +301,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminIntegrationsRoute: typeof AuthenticatedAdminIntegrationsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminIntegrationsRoute: AuthenticatedAdminIntegrationsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
 

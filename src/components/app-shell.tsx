@@ -36,8 +36,9 @@ const NAV = [
   { to: "/insights", label: "Insights", icon: Sparkles },
   { to: "/accounts", label: "Accounts", icon: Link2 },
   { to: "/settings", label: "Settings", icon: Settings },
-  { to: "/admin", label: "Setup", icon: Activity },
 ] as const;
+
+const ADMIN_NAV = [{ to: "/admin/integrations", label: "Diagnostics", icon: Activity }] as const;
 
 export function Logo({ compact = false }: { compact?: boolean }) {
   return (
@@ -57,9 +58,11 @@ export function Logo({ compact = false }: { compact?: boolean }) {
 
 function SidebarNav({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { isAdmin } = useDashboard();
+  const items = isAdmin ? [...NAV, ...ADMIN_NAV] : NAV;
   return (
     <nav className="flex flex-col gap-1">
-      {NAV.map(({ to, label, icon: Icon }) => {
+      {items.map(({ to, label, icon: Icon }) => {
         const active = pathname === to;
         return (
           <Link
