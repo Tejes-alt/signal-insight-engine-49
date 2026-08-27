@@ -19,39 +19,63 @@ export type Database = {
           account_id: string
           captured_at: string
           comments: number | null
+          created_at: string
           extra: Json
           followers: number | null
           following: number | null
           id: string
+          import_id: string | null
+          impressions: number | null
           likes: number | null
           org_id: string
           posts: number | null
+          profile_visits: number | null
+          reach: number | null
+          saves: number | null
+          shares: number | null
+          source: string
           views: number | null
         }
         Insert: {
           account_id: string
           captured_at?: string
           comments?: number | null
+          created_at?: string
           extra?: Json
           followers?: number | null
           following?: number | null
           id?: string
+          import_id?: string | null
+          impressions?: number | null
           likes?: number | null
           org_id: string
           posts?: number | null
+          profile_visits?: number | null
+          reach?: number | null
+          saves?: number | null
+          shares?: number | null
+          source?: string
           views?: number | null
         }
         Update: {
           account_id?: string
           captured_at?: string
           comments?: number | null
+          created_at?: string
           extra?: Json
           followers?: number | null
           following?: number | null
           id?: string
+          import_id?: string | null
+          impressions?: number | null
           likes?: number | null
           org_id?: string
           posts?: number | null
+          profile_visits?: number | null
+          reach?: number | null
+          saves?: number | null
+          shares?: number | null
+          source?: string
           views?: number | null
         }
         Relationships: [
@@ -318,6 +342,72 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "discovered_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      imports: {
+        Row: {
+          account_id: string | null
+          content_count: number
+          created_at: string
+          created_by: string | null
+          file_name: string
+          file_type: string
+          id: string
+          metric_count: number
+          org_id: string
+          platform: string
+          row_count: number
+          source: string
+          status: string
+          summary: Json
+        }
+        Insert: {
+          account_id?: string | null
+          content_count?: number
+          created_at?: string
+          created_by?: string | null
+          file_name: string
+          file_type: string
+          id?: string
+          metric_count?: number
+          org_id: string
+          platform: string
+          row_count?: number
+          source: string
+          status?: string
+          summary?: Json
+        }
+        Update: {
+          account_id?: string | null
+          content_count?: number
+          created_at?: string
+          created_by?: string | null
+          file_name?: string
+          file_type?: string
+          id?: string
+          metric_count?: number
+          org_id?: string
+          platform?: string
+          row_count?: number
+          source?: string
+          status?: string
+          summary?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imports_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "public_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "imports_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1053,13 +1143,21 @@ export type Database = {
       public_content: {
         Row: {
           account_id: string
+          caption: string | null
           comments: number | null
+          content_type: string | null
           external_id: string
           fetched_at: string
           id: string
+          import_id: string | null
+          impressions: number | null
           likes: number | null
           org_id: string
           published_at: string | null
+          reach: number | null
+          saves: number | null
+          shares: number | null
+          source: string
           thumbnail_url: string | null
           title: string | null
           url: string | null
@@ -1067,13 +1165,21 @@ export type Database = {
         }
         Insert: {
           account_id: string
+          caption?: string | null
           comments?: number | null
+          content_type?: string | null
           external_id: string
           fetched_at?: string
           id?: string
+          import_id?: string | null
+          impressions?: number | null
           likes?: number | null
           org_id: string
           published_at?: string | null
+          reach?: number | null
+          saves?: number | null
+          shares?: number | null
+          source?: string
           thumbnail_url?: string | null
           title?: string | null
           url?: string | null
@@ -1081,13 +1187,21 @@ export type Database = {
         }
         Update: {
           account_id?: string
+          caption?: string | null
           comments?: number | null
+          content_type?: string | null
           external_id?: string
           fetched_at?: string
           id?: string
+          import_id?: string | null
+          impressions?: number | null
           likes?: number | null
           org_id?: string
           published_at?: string | null
+          reach?: number | null
+          saves?: number | null
+          shares?: number | null
+          source?: string
           thumbnail_url?: string | null
           title?: string | null
           url?: string | null
