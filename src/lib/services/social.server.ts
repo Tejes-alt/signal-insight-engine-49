@@ -628,7 +628,18 @@ export async function discoverForWorkspace(
   userId: string,
   platform: PlatformId,
   handle: string,
-): Promise<{ found: boolean; account: null | Record<string, unknown> }> {
+): Promise<{
+  found: boolean;
+  account: {
+    platform: string;
+    handle: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+    profileUrl: string | null;
+    confidence: string;
+    source: string;
+  } | null;
+}> {
   const provider = providerFor(platform);
   const cleaned = handle.replace(/^@/, "").trim();
   let discovered = null;
@@ -655,7 +666,18 @@ export async function discoverForWorkspace(
     },
     { onConflict: "org_id,platform" },
   );
-  return { found: true, account: discovered as unknown as Record<string, unknown> };
+  return {
+    found: true,
+    account: {
+      platform: discovered.platform,
+      handle: discovered.handle,
+      displayName: discovered.displayName,
+      avatarUrl: discovered.avatarUrl,
+      profileUrl: discovered.profileUrl,
+      confidence: discovered.confidence,
+      source: discovered.source,
+    },
+  };
 }
 
 /* ------------------------------------------------------------------ */
