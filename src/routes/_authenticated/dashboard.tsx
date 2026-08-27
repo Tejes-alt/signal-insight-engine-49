@@ -14,10 +14,10 @@ import {
 } from "@/components/metrics";
 import { PLATFORM_ACCENT, PlatformMark } from "@/components/platform";
 import { Button } from "@/components/ui/button";
-import { useDashboard } from "@/hooks/use-dashboard";
+import { useDashboard, withDashboard } from "@/hooks/use-dashboard";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  component: DashboardPage,
+  component: withDashboard(DashboardPage),
   head: () => ({
     meta: [
       { title: "Overview · SocialPulse" },

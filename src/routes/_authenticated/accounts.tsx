@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useDashboard } from "@/hooks/use-dashboard";
+import { useDashboard, withDashboard } from "@/hooks/use-dashboard";
 import {
   completeConnection,
   disconnectAccount,
@@ -28,7 +28,7 @@ import { CONNECTION_STATUS_LABELS, type ConnectionStatus } from "@/lib/social/mo
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/accounts")({
-  component: AccountsPage,
+  component: withDashboard(AccountsPage),
   head: () => ({
     meta: [
       { title: "Connect your socials · SocialPulse" },
