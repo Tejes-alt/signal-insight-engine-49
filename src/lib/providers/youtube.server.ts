@@ -17,7 +17,7 @@ const API = "https://www.googleapis.com/youtube/v3";
 
 export class ProviderError extends Error {
   code: string;
-  detail?: string;
+  detail: string | undefined;
   constructor(code: string, message: string, detail?: string) {
     super(message);
     this.code = code;
