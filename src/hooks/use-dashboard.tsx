@@ -12,8 +12,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { getWorkspace } from "@/lib/workspace.functions";
 import { getDashboard } from "@/lib/dashboard.functions";
-import { getSocialState, syncAllAccounts } from "@/lib/social.functions";
+import { getSocialState, syncAllAccounts, syncStaleAccounts } from "@/lib/social.functions";
 import type { AnalyticsBundle } from "@/lib/analytics/dashboard";
+
 import { platformName } from "@/lib/social/platforms";
 
 export const RANGES = [
@@ -58,11 +59,13 @@ interface DashboardContextValue {
   connectedCount: number;
   providerConfigured: boolean;
   linkingConfigured: boolean;
+  integrationsReady: boolean;
   lastSyncedAt: string | null;
   syncing: boolean;
   syncAll: () => Promise<void>;
   refetch: () => void;
 }
+
 
 const DashboardContext = createContext<DashboardContextValue | null>(null);
 
