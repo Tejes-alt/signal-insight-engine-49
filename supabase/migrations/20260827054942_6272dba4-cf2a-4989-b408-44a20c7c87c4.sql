@@ -1,0 +1,1 @@
+revoke execute on function public.ensure_personal_workspace(text, text) from anon;

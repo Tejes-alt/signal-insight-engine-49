@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTheme } from "@/components/theme-provider";
-import { DashboardProvider, RANGES, useDashboard } from "@/hooks/use-dashboard";
+import { RANGES, useDashboard } from "@/hooks/use-dashboard";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -46,7 +46,7 @@ export function Logo({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+function SidebarNav({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   return (
     <nav className="flex flex-col gap-1">
@@ -173,7 +173,7 @@ function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
   );
 }
 
-function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
+function SidebarBody({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
   return (
     <div className="flex h-full flex-col gap-6 p-4">
       <Link to="/dashboard" className="px-2 pt-2" onClick={onNavigate}>
@@ -231,11 +231,7 @@ function ShellInner({ children }: { children: ReactNode }) {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  return (
-    <DashboardProvider>
-      <ShellInner>{children}</ShellInner>
-    </DashboardProvider>
-  );
+  return <ShellInner>{children}</ShellInner>;
 }
 
 export function PageHeader({
