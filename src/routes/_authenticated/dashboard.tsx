@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Activity, Download, Eye, Heart, Layers, Plus, RefreshCw, Upload, Users } from "lucide-react";
-import { AppShell, PageHeader } from "@/components/app-shell";
+import { AppShell } from "@/components/app-shell";
 import { SimpleArea, SimpleBars } from "@/components/public-charts";
 import { AnimatedNumber, EmptyState, SkeletonCard, formatNumber } from "@/components/metrics";
 import { PLATFORM_ACCENT, PlatformMark, platformName } from "@/components/platform";
