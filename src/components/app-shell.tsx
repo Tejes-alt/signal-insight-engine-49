@@ -300,7 +300,13 @@ function SidebarBody({ onNavigate }: { onNavigate?: (() => void) | undefined }) 
       </Link>
       <SidebarNav onNavigate={onNavigate} />
       <div className="mt-auto space-y-3">
-        <DemoToggle />
+        <div className="panel p-3">
+          <p className="text-sm font-semibold">Public presence tracking</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            SocialPulse reads what your profiles share publicly. Private metrics stay hidden until you authorize a
+            platform.
+          </p>
+        </div>
       </div>
     </div>
   );
