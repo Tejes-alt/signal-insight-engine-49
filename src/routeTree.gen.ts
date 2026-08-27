@@ -12,7 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedAccountsRouteImport } from './routes/_authenticated/accounts'
+import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
 import { Route as AuthenticatedCommandRouteImport } from './routes/_authenticated/command'
+import { Route as AuthenticatedContentRouteImport } from './routes/_authenticated/content'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedInsightsRouteImport } from './routes/_authenticated/insights'
 import { Route as AuthenticatedSourcesRouteImport } from './routes/_authenticated/sources'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,9 +34,34 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAccountsRoute = AuthenticatedAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAnalyticsRoute = AuthenticatedAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedCommandRoute = AuthenticatedCommandRouteImport.update({
   id: '/command',
   path: '/command',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedContentRoute = AuthenticatedContentRouteImport.update({
+  id: '/content',
+  path: '/content',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedInsightsRoute = AuthenticatedInsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSourcesRoute = AuthenticatedSourcesRouteImport.update({
@@ -43,13 +73,23 @@ const AuthenticatedSourcesRoute = AuthenticatedSourcesRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/accounts': typeof AuthenticatedAccountsRoute
+  '/analytics': typeof AuthenticatedAnalyticsRoute
   '/command': typeof AuthenticatedCommandRoute
+  '/content': typeof AuthenticatedContentRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/insights': typeof AuthenticatedInsightsRoute
   '/sources': typeof AuthenticatedSourcesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/accounts': typeof AuthenticatedAccountsRoute
+  '/analytics': typeof AuthenticatedAnalyticsRoute
   '/command': typeof AuthenticatedCommandRoute
+  '/content': typeof AuthenticatedContentRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/insights': typeof AuthenticatedInsightsRoute
   '/sources': typeof AuthenticatedSourcesRoute
 }
 export interface FileRoutesById {
@@ -57,20 +97,48 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/accounts': typeof AuthenticatedAccountsRoute
+  '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
   '/_authenticated/command': typeof AuthenticatedCommandRoute
+  '/_authenticated/content': typeof AuthenticatedContentRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/insights': typeof AuthenticatedInsightsRoute
   '/_authenticated/sources': typeof AuthenticatedSourcesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/command' | '/sources'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/accounts'
+    | '/analytics'
+    | '/command'
+    | '/content'
+    | '/dashboard'
+    | '/insights'
+    | '/sources'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/command' | '/sources'
+  to:
+    | '/'
+    | '/auth'
+    | '/accounts'
+    | '/analytics'
+    | '/command'
+    | '/content'
+    | '/dashboard'
+    | '/insights'
+    | '/sources'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/accounts'
+    | '/_authenticated/analytics'
     | '/_authenticated/command'
+    | '/_authenticated/content'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/insights'
     | '/_authenticated/sources'
   fileRoutesById: FileRoutesById
 }
@@ -103,11 +171,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/accounts': {
+      id: '/_authenticated/accounts'
+      path: '/accounts'
+      fullPath: '/accounts'
+      preLoaderRoute: typeof AuthenticatedAccountsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/analytics': {
+      id: '/_authenticated/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AuthenticatedAnalyticsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/command': {
       id: '/_authenticated/command'
       path: '/command'
       fullPath: '/command'
       preLoaderRoute: typeof AuthenticatedCommandRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/content': {
+      id: '/_authenticated/content'
+      path: '/content'
+      fullPath: '/content'
+      preLoaderRoute: typeof AuthenticatedContentRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/insights': {
+      id: '/_authenticated/insights'
+      path: '/insights'
+      fullPath: '/insights'
+      preLoaderRoute: typeof AuthenticatedInsightsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/sources': {
@@ -121,12 +224,22 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAccountsRoute: typeof AuthenticatedAccountsRoute
+  AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
   AuthenticatedCommandRoute: typeof AuthenticatedCommandRoute
+  AuthenticatedContentRoute: typeof AuthenticatedContentRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedInsightsRoute: typeof AuthenticatedInsightsRoute
   AuthenticatedSourcesRoute: typeof AuthenticatedSourcesRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAccountsRoute: AuthenticatedAccountsRoute,
+  AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
   AuthenticatedCommandRoute: AuthenticatedCommandRoute,
+  AuthenticatedContentRoute: AuthenticatedContentRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedInsightsRoute: AuthenticatedInsightsRoute,
   AuthenticatedSourcesRoute: AuthenticatedSourcesRoute,
 }
 

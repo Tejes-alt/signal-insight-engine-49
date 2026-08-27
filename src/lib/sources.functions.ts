@@ -30,7 +30,7 @@ export const createPublicSource = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     orgSchema
       .extend({
-        provider: z.enum(["youtube", "x", "tiktok", "instagram"]),
+        provider: z.enum(["youtube", "instagram", "linkedin", "tiktok", "x", "facebook"]),
         input: z.string().min(2).max(200),
       })
       .parse(input),
