@@ -2,6 +2,14 @@ import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardProvider } from "@/hooks/use-dashboard";
 
+function AuthenticatedLayout() {
+  return (
+    <DashboardProvider>
+      <Outlet />
+    </DashboardProvider>
+  );
+}
+
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
@@ -9,9 +17,5 @@ export const Route = createFileRoute("/_authenticated")({
     if (error || !data.user) throw redirect({ to: "/auth" });
     return { user: data.user };
   },
-  component: () => (
-    <DashboardProvider>
-      <Outlet />
-    </DashboardProvider>
-  ),
+  component: AuthenticatedLayout,
 });
