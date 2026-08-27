@@ -3,9 +3,9 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ensureWorkspace, listWorkspaces } from "./services/workspace.server";
 
 /**
- * Onboarding bootstrap. Creates the workspace on first sign-in and — when the
- * installation is configured — the isolated provider profile that every social
- * connection hangs off. The user never sees or configures either step.
+ * Onboarding bootstrap. Creates the workspace on first sign-in and reports
+ * which official platform integrations this installation can offer. The user
+ * never sees or configures either step.
  */
 export const getWorkspace = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -15,23 +15,18 @@ export const getWorkspace = createServerFn({ method: "GET" })
     const all = await listWorkspaces(context.supabase, context.userId);
 
     let integrationsReady = false;
+    let readyPlatforms: string[] = [];
     try {
-      const { providerConfig } = await import("./services/ayrshare.server");
-      const config = providerConfig();
-      integrationsReady = config.apiKeyConfigured;
-      if (config.apiKeyConfigured) {
-        const { ensureSocialProfile } = await import("./services/social.server");
-        await ensureSocialProfile(
-          workspace.id,
-          context.userId,
-          `SocialPulse ${workspace.slug}`,
-        );
-      }
+      const { allIntegrationStatuses } = await import("./social/oauth/config.server");
+      const statuses = allIntegrationStatuses();
+      readyPlatforms = statuses.filter((s) => s.configured).map((s) => s.platform);
+      integrationsReady = readyPlatforms.length > 0;
     } catch (error) {
-      // Never block sign-in on provider provisioning; the accounts page and the
-      // admin health check both surface the real reason.
-      console.error("[onboarding] provider profile provisioning deferred:", error);
+      // Never block sign-in on integration inspection; the accounts page and
+      // the admin health check both surface the real reason.
+      console.error("[onboarding] integration status unavailable:", error);
     }
 
-    return { workspace, workspaces: all, email, integrationsReady };
+    return { workspace, workspaces: all, email, integrationsReady, readyPlatforms };
   });
+
