@@ -11,6 +11,7 @@ import {
   Moon,
   Play,
   RefreshCw,
+  Search,
   Settings,
   Sparkles,
   UserRound,
@@ -27,6 +28,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useTheme } from "@/components/theme-provider";
 import { RANGES } from "@/hooks/use-dashboard";
 import { useDashboard } from "@/hooks/dashboard-context";
+import { CommandPalette, useCommandPalette } from "@/components/command-palette";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -48,11 +50,12 @@ export function Logo({ compact = false }: { compact?: boolean }) {
     <span className="flex items-center gap-2.5">
       <span className="relative grid size-9 place-items-center rounded-xl" style={{ background: "var(--gradient-brand)" }}>
         <span className="font-display text-sm font-bold text-background">S</span>
-        <span className="live-dot absolute -right-0.5 -top-0.5" />
+        <span className="pointer-events-none absolute inset-0 rounded-xl border border-primary/40 halo-ring" aria-hidden />
       </span>
       {!compact ? (
-        <span className="font-display text-lg font-bold tracking-tight">
-          Social<span className="gradient-text">Pulse</span>
+        <span className="flex flex-col leading-none">
+          <span className="font-display text-[0.66rem] font-semibold tracking-[0.34em] text-muted-foreground">SOCIAL</span>
+          <span className="gradient-text font-display text-lg font-bold tracking-[0.14em]">PULSE</span>
         </span>
       ) : null}
     </span>
@@ -217,7 +220,7 @@ function NotificationBell() {
   );
 }
 
-function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
+function TopBar({ onOpenMenu, onOpenCommand }: { onOpenMenu: () => void; onOpenCommand: () => void }) {
   const { theme, toggle } = useTheme();
   const { refetch, isLoading, email } = useDashboard();
   const navigate = useNavigate();
@@ -239,6 +242,15 @@ function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
         <Logo compact />
       </div>
       <div className="ml-auto flex items-center gap-2">
+        <button
+          onClick={onOpenCommand}
+          className="press hidden items-center gap-2 rounded-xl border border-border bg-secondary/40 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground md:flex"
+          aria-label="Open command palette"
+        >
+          <Search className="size-3.5" />
+          Search SocialPulse
+          <span className="kbd ml-2">⌘K</span>
+        </button>
         <SyncStatus />
         <RangePicker />
         <NotificationBell />
@@ -290,11 +302,38 @@ function SidebarBody({ onNavigate }: { onNavigate?: (() => void) | undefined }) 
   );
 }
 
+function BottomNav() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  return (
+    <nav className="glass fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-x-0 border-b-0 px-2 pb-[env(safe-area-inset-bottom)] pt-1 md:hidden">
+      {NAV.slice(0, 5).map(({ to, label, icon: Icon }) => {
+        const active = pathname === to;
+        return (
+          <Link
+            key={to}
+            to={to}
+            aria-label={label}
+            className={cn(
+              "flex min-h-11 flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-1.5 text-[0.6rem] font-medium transition-colors",
+              active ? "text-primary" : "text-muted-foreground",
+            )}
+          >
+            <Icon className="size-4" />
+            {label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 function ShellInner({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { open: commandOpen, setOpen: setCommandOpen } = useCommandPalette();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
-    <div className="aurora min-h-screen">
+    <div className="aurora grain min-h-screen">
       <div className="flex min-h-screen">
         <aside className="hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar/70 backdrop-blur-xl lg:block">
           <div className="sticky top-0 h-screen">
@@ -325,10 +364,16 @@ function ShellInner({ children }: { children: ReactNode }) {
         ) : null}
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <TopBar onOpenMenu={() => setMenuOpen(true)} />
-          <main className="mx-auto w-full max-w-[100rem] flex-1 px-4 py-6 md:px-7 md:py-8">{children}</main>
+          <TopBar onOpenMenu={() => setMenuOpen(true)} onOpenCommand={() => setCommandOpen(true)} />
+          <main className="mx-auto w-full max-w-[100rem] flex-1 px-4 pb-24 pt-6 md:px-7 md:pb-10 md:pt-8">
+            <div key={pathname} className="page-enter">
+              {children}
+            </div>
+          </main>
         </div>
       </div>
+      <BottomNav />
+      <CommandPalette open={commandOpen} onClose={() => setCommandOpen(false)} />
     </div>
   );
 }
