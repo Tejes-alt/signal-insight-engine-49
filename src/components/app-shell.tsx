@@ -14,6 +14,7 @@ import {
   Settings,
   Sparkles,
   UserRound,
+  Upload,
   Sun,
   X,
 } from "lucide-react";
