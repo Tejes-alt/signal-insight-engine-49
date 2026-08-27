@@ -293,62 +293,6 @@ export type Database = {
           },
         ]
       }
-      discovered_accounts: {
-        Row: {
-          avatar_url: string | null
-          confidence: string
-          created_at: string
-          dismissed: boolean
-          display_name: string | null
-          handle: string
-          id: string
-          org_id: string
-          platform: string
-          profile_url: string | null
-          source: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          confidence?: string
-          created_at?: string
-          dismissed?: boolean
-          display_name?: string | null
-          handle: string
-          id?: string
-          org_id: string
-          platform: string
-          profile_url?: string | null
-          source?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          avatar_url?: string | null
-          confidence?: string
-          created_at?: string
-          dismissed?: boolean
-          display_name?: string | null
-          handle?: string
-          id?: string
-          org_id?: string
-          platform?: string
-          profile_url?: string | null
-          source?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "discovered_accounts_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       imports: {
         Row: {
           account_id: string | null
@@ -588,53 +532,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "notifications_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      oauth_states: {
-        Row: {
-          code_verifier: string | null
-          consumed_at: string | null
-          created_at: string
-          expires_at: string
-          handle: string | null
-          org_id: string
-          platform: string
-          redirect_to: string
-          state: string
-          user_id: string
-        }
-        Insert: {
-          code_verifier?: string | null
-          consumed_at?: string | null
-          created_at?: string
-          expires_at: string
-          handle?: string | null
-          org_id: string
-          platform: string
-          redirect_to: string
-          state: string
-          user_id: string
-        }
-        Update: {
-          code_verifier?: string | null
-          consumed_at?: string | null
-          created_at?: string
-          expires_at?: string
-          handle?: string | null
-          org_id?: string
-          platform?: string
-          redirect_to?: string
-          state?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "oauth_states_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1033,47 +930,6 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      provider_tokens: {
-        Row: {
-          access_token_ciphertext: string
-          created_at: string
-          expires_at: string | null
-          id: string
-          provider_account_id: string
-          refresh_token_ciphertext: string | null
-          scopes: string[]
-          updated_at: string
-        }
-        Insert: {
-          access_token_ciphertext: string
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          provider_account_id: string
-          refresh_token_ciphertext?: string | null
-          scopes?: string[]
-          updated_at?: string
-        }
-        Update: {
-          access_token_ciphertext?: string
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          provider_account_id?: string
-          refresh_token_ciphertext?: string | null
-          scopes?: string[]
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "provider_tokens_provider_account_id_fkey"
-            columns: ["provider_account_id"]
-            isOneToOne: true
-            referencedRelation: "provider_accounts"
             referencedColumns: ["id"]
           },
         ]
@@ -1511,63 +1367,6 @@ export type Database = {
           },
           {
             foreignKeyName: "social_posts_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      social_tokens: {
-        Row: {
-          access_token_ciphertext: string
-          connection_id: string
-          created_at: string
-          expires_at: string | null
-          id: string
-          metadata: Json
-          org_id: string
-          platform: string
-          refresh_token_ciphertext: string | null
-          scopes: Json
-          updated_at: string
-        }
-        Insert: {
-          access_token_ciphertext: string
-          connection_id: string
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          metadata?: Json
-          org_id: string
-          platform: string
-          refresh_token_ciphertext?: string | null
-          scopes?: Json
-          updated_at?: string
-        }
-        Update: {
-          access_token_ciphertext?: string
-          connection_id?: string
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          metadata?: Json
-          org_id?: string
-          platform?: string
-          refresh_token_ciphertext?: string | null
-          scopes?: Json
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "social_tokens_connection_id_fkey"
-            columns: ["connection_id"]
-            isOneToOne: true
-            referencedRelation: "social_connections"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "social_tokens_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
