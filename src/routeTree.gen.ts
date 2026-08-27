@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAnalyticsRouteImport } from './routes/_authenticated/analytics'
 import { Route as AuthenticatedCommandRouteImport } from './routes/_authenticated/command'
+import { Route as AuthenticatedContentRouteImport } from './routes/_authenticated/content'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedSourcesRouteImport } from './routes/_authenticated/sources'
 
@@ -41,6 +42,11 @@ const AuthenticatedCommandRoute = AuthenticatedCommandRouteImport.update({
   path: '/command',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedContentRoute = AuthenticatedContentRouteImport.update({
+  id: '/content',
+  path: '/content',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -57,6 +63,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/command': typeof AuthenticatedCommandRoute
+  '/content': typeof AuthenticatedContentRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/sources': typeof AuthenticatedSourcesRoute
 }
@@ -65,6 +72,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/analytics': typeof AuthenticatedAnalyticsRoute
   '/command': typeof AuthenticatedCommandRoute
+  '/content': typeof AuthenticatedContentRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/sources': typeof AuthenticatedSourcesRoute
 }
@@ -75,15 +83,29 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/analytics': typeof AuthenticatedAnalyticsRoute
   '/_authenticated/command': typeof AuthenticatedCommandRoute
+  '/_authenticated/content': typeof AuthenticatedContentRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/sources': typeof AuthenticatedSourcesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/auth' | '/analytics' | '/command' | '/dashboard' | '/sources'
+    | '/'
+    | '/auth'
+    | '/analytics'
+    | '/command'
+    | '/content'
+    | '/dashboard'
+    | '/sources'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/analytics' | '/command' | '/dashboard' | '/sources'
+  to:
+    | '/'
+    | '/auth'
+    | '/analytics'
+    | '/command'
+    | '/content'
+    | '/dashboard'
+    | '/sources'
   id:
     | '__root__'
     | '/'
@@ -91,6 +113,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/analytics'
     | '/_authenticated/command'
+    | '/_authenticated/content'
     | '/_authenticated/dashboard'
     | '/_authenticated/sources'
   fileRoutesById: FileRoutesById
@@ -138,6 +161,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCommandRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/content': {
+      id: '/_authenticated/content'
+      path: '/content'
+      fullPath: '/content'
+      preLoaderRoute: typeof AuthenticatedContentRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -158,6 +188,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalyticsRoute: typeof AuthenticatedAnalyticsRoute
   AuthenticatedCommandRoute: typeof AuthenticatedCommandRoute
+  AuthenticatedContentRoute: typeof AuthenticatedContentRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedSourcesRoute: typeof AuthenticatedSourcesRoute
 }
@@ -165,6 +196,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAnalyticsRoute: AuthenticatedAnalyticsRoute,
   AuthenticatedCommandRoute: AuthenticatedCommandRoute,
+  AuthenticatedContentRoute: AuthenticatedContentRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedSourcesRoute: AuthenticatedSourcesRoute,
 }
