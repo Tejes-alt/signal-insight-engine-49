@@ -111,9 +111,17 @@ export interface SentimentDistribution {
   averageConfidence: number;
 }
 
-export function summarizeSentiment(
-  results: { score: number; label: SentimentLabel; confidence: number }[],
-): SentimentDistribution {
+/** Accepts either raw sentiment results or scored records/comments. */
+export interface SentimentScored {
+  score?: number;
+  label?: SentimentLabel;
+  confidence?: number;
+  sentimentScore?: number;
+  sentimentLabel?: SentimentLabel;
+  sentimentConfidence?: number;
+}
+
+export function summarizeSentiment(results: SentimentScored[]): SentimentDistribution {
   const total = results.length;
   if (total === 0) {
     return { positive: 0, neutral: 0, negative: 0, total: 0, averageScore: 0, volatility: 0, averageConfidence: 0 };
@@ -121,10 +129,13 @@ export function summarizeSentiment(
   const counts = { positive: 0, neutral: 0, negative: 0 };
   let sum = 0;
   let confSum = 0;
+  const scores: number[] = [];
   for (const r of results) {
-    counts[r.label] += 1;
-    sum += r.score;
-    confSum += r.confidence;
+    counts[r.label ?? r.sentimentLabel ?? "neutral"] += 1;
+    const score = r.score ?? r.sentimentScore ?? 0;
+    scores.push(score);
+    sum += score;
+    confSum += r.confidence ?? r.sentimentConfidence ?? 0;
   }
   const mean = sum / total;
   const variance = results.reduce((acc, r) => acc + (r.score - mean) ** 2, 0) / total;
