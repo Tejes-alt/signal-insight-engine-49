@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
+import { MarkWatermark, SocialPulseLogo } from "@/components/brand";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 
@@ -167,13 +168,13 @@ function AuthPage() {
 
         {sent ? (
           <div className="mt-6 space-y-4">
-            <p className="rounded-xl border border-border bg-secondary/40 p-4 text-sm text-foreground">{sent}</p>
+            <p className="rounded-md border border-border bg-secondary/40 p-4 text-sm text-foreground">{sent}</p>
             <button
               onClick={() => {
                 setSent(null);
                 setMode("signin");
               }}
-              className="w-full rounded-xl border border-border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-secondary"
+              className="w-full rounded-md border border-border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-secondary"
             >
               Back to sign in
             </button>
@@ -185,7 +186,7 @@ function AuthPage() {
                 <button
                   onClick={google}
                   disabled={busy}
-                  className="mt-6 w-full rounded-xl border border-border bg-secondary/50 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
+                  className="mt-6 w-full rounded-md border border-border bg-secondary/50 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:opacity-50"
                 >
                   Continue with Google
                 </button>
@@ -264,7 +265,7 @@ function AuthPage() {
               <button
                 type="submit"
                 disabled={busy}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 {busy ? <Loader2 className="size-4 animate-spin" /> : null}
                 {mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset link"}
