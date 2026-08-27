@@ -375,7 +375,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   return <ShellInner>{children}</ShellInner>;
 }
 
-/** Standard content gutter. Pages compose their own rhythm inside it. */
+/**
+ * A composition band. `bleed` breaks the section out of the page gutter so a
+ * chart, divider or grid can run edge to edge — the main lever against the
+ * "everything is a floating card" look.
+ */
 export function Section({
   children,
   className,
@@ -385,11 +389,7 @@ export function Section({
   className?: string;
   bleed?: boolean;
 }) {
-  return (
-    <section className={cn("mx-auto w-full max-w-[104rem]", bleed ? "px-0" : "px-4 md:px-8", className)}>
-      {children}
-    </section>
-  );
+  return <section className={cn(bleed && "-mx-4 md:-mx-8", className)}>{children}</section>;
 }
 
 export function PageHeader({
@@ -402,7 +402,8 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <Section className="border-b border-border py-8 md:py-10">
+    <Section bleed className="border-b border-border px-4 pb-8 md:px-8 md:pb-10">
+
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div className="max-w-2xl">
           <h1 className="font-display text-[1.75rem] font-semibold tracking-[-0.03em] md:text-[2.1rem]">{title}</h1>
