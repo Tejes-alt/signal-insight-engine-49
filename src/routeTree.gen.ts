@@ -22,7 +22,6 @@ import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedAdminIntegrationsRouteImport } from './routes/_authenticated/admin.integrations'
 import { Route as ApiPublicCronSyncRouteImport } from './routes/api/public/cron/sync'
-import { Route as ApiPublicSocialCallbackRouteImport } from './routes/api/public/social/callback'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -89,11 +88,6 @@ const ApiPublicCronSyncRoute = ApiPublicCronSyncRouteImport.update({
   path: '/api/public/cron/sync',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicSocialCallbackRoute = ApiPublicSocialCallbackRouteImport.update({
-  id: '/api/public/social/callback',
-  path: '/api/public/social/callback',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -108,7 +102,6 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/admin/integrations': typeof AuthenticatedAdminIntegrationsRoute
   '/api/public/cron/sync': typeof ApiPublicCronSyncRoute
-  '/api/public/social/callback': typeof ApiPublicSocialCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -123,7 +116,6 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/admin/integrations': typeof AuthenticatedAdminIntegrationsRoute
   '/api/public/cron/sync': typeof ApiPublicCronSyncRoute
-  '/api/public/social/callback': typeof ApiPublicSocialCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -140,7 +132,6 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/admin/integrations': typeof AuthenticatedAdminIntegrationsRoute
   '/api/public/cron/sync': typeof ApiPublicCronSyncRoute
-  '/api/public/social/callback': typeof ApiPublicSocialCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -157,7 +148,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/admin/integrations'
     | '/api/public/cron/sync'
-    | '/api/public/social/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -172,7 +162,6 @@ export interface FileRouteTypes {
     | '/settings'
     | '/admin/integrations'
     | '/api/public/cron/sync'
-    | '/api/public/social/callback'
   id:
     | '__root__'
     | '/'
@@ -188,7 +177,6 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/admin/integrations'
     | '/api/public/cron/sync'
-    | '/api/public/social/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -197,7 +185,6 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ApiPublicCronSyncRoute: typeof ApiPublicCronSyncRoute
-  ApiPublicSocialCallbackRoute: typeof ApiPublicSocialCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -293,13 +280,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCronSyncRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/social/callback': {
-      id: '/api/public/social/callback'
-      path: '/api/public/social/callback'
-      fullPath: '/api/public/social/callback'
-      preLoaderRoute: typeof ApiPublicSocialCallbackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -334,7 +314,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ApiPublicCronSyncRoute: ApiPublicCronSyncRoute,
-  ApiPublicSocialCallbackRoute: ApiPublicSocialCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
