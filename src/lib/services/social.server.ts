@@ -1,11 +1,11 @@
 /**
  * SocialPulse synchronization + analytics service. Server-only.
  *
- * Owns: the per-workspace provider profile, connection lifecycle, real data
- * synchronization, normalized persistence, historical recording, insight
+ * Owns: connection lifecycle, real data synchronization through the official
+ * platform providers, normalized persistence, historical recording, insight
  * generation and privacy/deletion actions.
  *
- * Nothing in here fabricates a number. When the provider does not return a
+ * Nothing in here fabricates a number. When a platform does not return a
  * metric it is stored as absent and rendered with the reason.
  */
 
@@ -18,14 +18,14 @@ import {
   type MetricStatus,
 } from "../social/model";
 import { PLATFORMS, platformName, type PlatformId } from "../social/platforms";
+import { providerFor } from "../social/oauth/registry.server";
+import { allIntegrationStatuses, integrationStatus } from "../social/oauth/config.server";
+import { deleteTokens, loadTokens, usableToken } from "../social/oauth/tokens.server";
 import {
-  ProviderNotConfiguredError,
+  IntegrationNotConfiguredError,
   ProviderRequestError,
-  decryptSecret,
-  encryptSecret,
-  providerConfig,
-  socialProvider,
-} from "./ayrshare.server";
+  type ProviderAccount,
+} from "../social/oauth/types";
 import {
   available,
   growthFromSeries,
@@ -70,72 +70,25 @@ export interface ConnectionRow {
   metrics: StoredMetrics;
 }
 
-
-/* ------------------------------------------------------------------ */
-/* Provider profile (one isolated profile per workspace)               */
-/* ------------------------------------------------------------------ */
-
-interface ProfileRecord {
-  id: string;
-  profileKey: string;
-}
-
-export async function ensureSocialProfile(
-  orgId: string,
-  userId: string,
-  title: string,
-): Promise<ProfileRecord> {
-  const { data: existing, error } = await supabaseAdmin
-    .from("social_profiles")
-    .select("id, profile_key_ciphertext")
-    .eq("org_id", orgId)
-    .eq("provider", "ayrshare")
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-
-  if (existing?.profile_key_ciphertext) {
-    return { id: existing.id, profileKey: decryptSecret(existing.profile_key_ciphertext) };
-  }
-
-  const profile = await socialProvider.createProfile(title);
-  const payload = {
-    org_id: orgId,
-    user_id: userId,
-    provider: "ayrshare",
-    profile_key_ciphertext: encryptSecret(profile.profileKey),
-    profile_ref: profile.refId,
-    title,
+/** The account identity stored on the connection row at authorization time. */
+function accountFromRow(row: {
+  external_id?: string | null;
+  handle?: string | null;
+  display_name?: string | null;
+  avatar_url?: string | null;
+  metadata?: unknown;
+}): ProviderAccount {
+  return {
+    externalId: row.external_id ?? "",
+    handle: row.handle ?? null,
+    displayName: row.display_name ?? null,
+    avatarUrl: row.avatar_url ?? null,
+    profileUrl: null,
+    metadata: (row.metadata ?? {}) as JsonObject,
   };
-
-  if (existing) {
-    const { error: updateError } = await supabaseAdmin
-      .from("social_profiles")
-      .update(payload)
-      .eq("id", existing.id);
-    if (updateError) throw new Error(updateError.message);
-    return { id: existing.id, profileKey: profile.profileKey };
-  }
-
-  const { data: inserted, error: insertError } = await supabaseAdmin
-    .from("social_profiles")
-    .insert(payload)
-    .select("id")
-    .single();
-  if (insertError) throw new Error(insertError.message);
-  return { id: inserted.id, profileKey: profile.profileKey };
 }
 
-async function loadProfile(orgId: string): Promise<ProfileRecord | null> {
-  const { data, error } = await supabaseAdmin
-    .from("social_profiles")
-    .select("id, profile_key_ciphertext")
-    .eq("org_id", orgId)
-    .eq("provider", "ayrshare")
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!data?.profile_key_ciphertext) return null;
-  return { id: data.id, profileKey: decryptSecret(data.profile_key_ciphertext) };
-}
+
 
 /* ------------------------------------------------------------------ */
 /* Notifications                                                       */
