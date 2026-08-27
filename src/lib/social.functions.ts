@@ -54,22 +54,12 @@ export const purgeWorkspaceData = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-/** Operator diagnostics. Owners and admins only; never surfaced to members. */
+/** Lightweight tracking status used by the settings page. */
 export const getSetupStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => orgInput.parse(input))
   .handler(async ({ data, context }) => {
-    const role = await assertMember(context.supabase, data.orgId, context.userId);
-    if (!["owner", "admin"].includes(role)) throw new Error("Not available for this account.");
-
-    const { allIntegrationStatuses } = await import("./social/oauth/config.server");
-    const { PLATFORMS } = await import("./social/platforms");
-    const integrations = allIntegrationStatuses().map((status) => ({
-      platform: status.platform,
-      name: PLATFORMS[status.platform].name,
-      configured: status.configured,
-      missing: status.missing,
-    }));
+    await assertMember(context.supabase, data.orgId, context.userId);
 
     const { data: accounts, error } = await context.supabase
       .from("public_accounts")
@@ -86,8 +76,6 @@ export const getSetupStatus = createServerFn({ method: "POST" })
       .sort((a, b) => a - b)[0];
 
     return {
-      integrations,
-      configuredCount: integrations.filter((i) => i.configured).length,
       database: !error,
       connections: accounts?.length ?? 0,
       backgroundSync: {
