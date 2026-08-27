@@ -112,13 +112,19 @@ function greeting(): string {
   return "Good evening";
 }
 
+function friendlyName(name: string | null): string | null {
+  if (!name) return null;
+  const cleaned = name.replace(/['’]?s?\s*workspace$/i, "").trim();
+  return cleaned.length > 0 ? cleaned : null;
+}
+
 function DashboardPage() {
   const { overview, accounts, isLoading, lastCheckedAt, refreshing, refreshAll, workspaceName } = useDashboard();
 
   return (
     <AppShell>
       <header className="animate-rise mb-7">
-        <p className="label-mono">{greeting()}{workspaceName ? `, ${workspaceName}` : ""}.</p>
+        <p className="label-mono">{greeting()}{friendlyName(workspaceName) ? `, ${friendlyName(workspaceName)}` : ""}.</p>
         <h1 className="mt-2 font-display text-3xl font-bold tracking-tight md:text-4xl">
           Your social presence, <span className="gradient-text">quantified</span>.
         </h1>
