@@ -330,7 +330,7 @@ function AccountsPage() {
                   <Button
                     className="mt-auto w-full"
                     variant={failures[platform.id] ? "destructive" : "default"}
-                    disabled={busy === platform.id}
+                    disabled={busy === platform.id || !orgId}
                     onClick={() => connect.mutate(platform.id)}
                   >
                     {busy === platform.id ? (
@@ -342,7 +342,9 @@ function AccountsPage() {
                     ) : (
                       <Plus className="mr-2 size-4" />
                     )}
-                    {busy === platform.id
+                    {!orgId
+                      ? "Preparing workspace…"
+                      : busy === platform.id
                       ? "Connecting…"
                       : failures[platform.id]
                         ? "Connection Failed — Try Again"
