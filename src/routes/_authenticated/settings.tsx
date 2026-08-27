@@ -85,7 +85,12 @@ function SettingsPage() {
   const notificationSettings = prefs?.notification_settings ?? {};
 
   const save = useMutation({
-    mutationFn: (input: Parameters<typeof saveFn>[0]["data"]) => saveFn({ data: input }),
+    mutationFn: (input: {
+      theme?: "light" | "dark";
+      primaryPlatform?: string | null;
+      defaultRangeDays?: number;
+      notificationSettings?: Record<string, boolean>;
+    }) => saveFn({ data: input }),
     onSuccess: () => {
       toast.success("Preferences saved");
       void queryClient.invalidateQueries({ queryKey: ["preferences"] });
@@ -127,7 +132,7 @@ function SettingsPage() {
 
         <Section icon={Palette} title="Theme" description="Choose how SocialPulse looks.">
           <div className="flex gap-2">
-            {(["light", "dark", "system"] as const).map((option) => (
+            {(["light", "dark"] as const).map((option) => (
               <button
                 key={option}
                 onClick={() => {

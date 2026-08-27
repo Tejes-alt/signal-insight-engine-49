@@ -8,13 +8,13 @@ export const Route = createFileRoute("/auth")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Sign in · Pulse Social Analytics" },
+      { title: "Sign in · SocialPulse" },
       {
         name: "description",
         content:
-          "Sign in to Pulse to see your followers, reach, engagement and top content across every social platform.",
+          "Sign in to SocialPulse to see your followers, reach, engagement and top content across every social platform.",
       },
-      { property: "og:title", content: "Sign in · Pulse Social Analytics" },
+      { property: "og:title", content: "Sign in · SocialPulse" },
       {
         property: "og:description",
         content: "Your social media analytics, unified in one dashboard.",
@@ -81,7 +81,7 @@ function AuthPage() {
     <div className="aurora flex min-h-screen items-center justify-center px-4 py-10">
       <div className="panel gradient-border animate-rise w-full max-w-md p-8">
         <Link to="/" className="label-mono text-muted-foreground hover:text-foreground">
-          ← Back to Pulse
+          ← Back to SocialPulse
         </Link>
         <h1 className="mt-6 font-display text-2xl font-semibold text-foreground">
           {mode === "signin" ? "Welcome back" : "Create your account"}

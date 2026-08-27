@@ -2,7 +2,9 @@ import { useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  Activity,
   BarChart3,
+  Bell,
   FlaskConical,
   LayoutDashboard,
   Link2,
@@ -11,10 +13,14 @@ import {
   Moon,
   Play,
   RefreshCw,
+  Settings,
   Sparkles,
   Sun,
   X,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getNotifications, markNotificationsRead } from "@/lib/social.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -29,17 +35,20 @@ const NAV = [
   { to: "/content", label: "Content", icon: Play },
   { to: "/insights", label: "Insights", icon: Sparkles },
   { to: "/accounts", label: "Accounts", icon: Link2 },
+  { to: "/settings", label: "Settings", icon: Settings },
+  { to: "/admin", label: "Setup", icon: Activity },
 ] as const;
 
 export function Logo({ compact = false }: { compact?: boolean }) {
   return (
     <span className="flex items-center gap-2.5">
       <span className="relative grid size-9 place-items-center rounded-xl" style={{ background: "var(--gradient-brand)" }}>
-        <span className="font-display text-sm font-bold text-background">P</span>
+        <span className="font-display text-sm font-bold text-background">S</span>
+        <span className="live-dot absolute -right-0.5 -top-0.5" />
       </span>
       {!compact ? (
         <span className="font-display text-lg font-bold tracking-tight">
-          Pulse<span className="gradient-text">.</span>
+          Social<span className="gradient-text">Pulse</span>
         </span>
       ) : null}
     </span>
@@ -123,6 +132,110 @@ function RangePicker() {
   );
 }
 
+function relativeTime(iso: string | null): string {
+  if (!iso) return "never";
+  const seconds = Math.max(1, Math.round((Date.now() - Date.parse(iso)) / 1000));
+  if (seconds < 60) return `${seconds} seconds ago`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+/** Honest status: LIVE only when a real, recently-synced connection exists. */
+function SyncStatus() {
+  const { demo, connectedCount, lastSyncedAt, syncing, syncAll } = useDashboard();
+  const fresh = lastSyncedAt !== null && Date.now() - Date.parse(lastSyncedAt) < 15 * 60_000;
+
+  return (
+    <div className="hidden items-center gap-2 md:flex">
+      <span
+        className={cn(
+          "flex items-center gap-1.5 rounded-xl border border-border bg-secondary/50 px-2.5 py-1 text-xs font-semibold",
+          demo ? "text-warning" : syncing ? "text-primary" : fresh ? "text-success" : "text-muted-foreground",
+        )}
+        title={lastSyncedAt ? `Last synchronized ${new Date(lastSyncedAt).toLocaleString()}` : undefined}
+      >
+        {demo ? (
+          "DEMO DATA"
+        ) : syncing ? (
+          <>
+            <RefreshCw className="size-3 animate-spin" /> Syncing…
+          </>
+        ) : connectedCount === 0 ? (
+          "NO ACCOUNTS"
+        ) : fresh ? (
+          <>
+            <span className="live-dot" /> LIVE
+          </>
+        ) : (
+          `UPDATED ${relativeTime(lastSyncedAt).toUpperCase()}`
+        )}
+      </span>
+      {!demo && connectedCount > 0 ? (
+        <Button size="sm" variant="secondary" disabled={syncing} onClick={() => void syncAll()}>
+          <RefreshCw className={cn("mr-1.5 size-3.5", syncing && "animate-spin")} />
+          Sync all
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+function NotificationBell() {
+  const { orgId } = useDashboard();
+  const listFn = useServerFn(getNotifications);
+  const readFn = useServerFn(markNotificationsRead);
+  const [open, setOpen] = useState(false);
+  const query = useQuery({
+    queryKey: ["notifications", orgId],
+    queryFn: () => listFn({ data: { orgId: orgId! } }),
+    enabled: Boolean(orgId),
+    refetchInterval: 60_000,
+  });
+  const items = query.data?.notifications ?? [];
+  const unread = items.filter((n) => !n.read_at).length;
+
+  return (
+    <div className="relative">
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="Notifications"
+        onClick={() => {
+          setOpen((v) => !v);
+          if (!open && unread > 0 && orgId) void readFn({ data: { orgId } }).then(() => query.refetch());
+        }}
+      >
+        <Bell className="size-4" />
+        {unread > 0 ? (
+          <span className="absolute right-1.5 top-1.5 grid size-4 place-items-center rounded-full bg-primary text-[0.6rem] font-bold text-background">
+            {unread > 9 ? "9+" : unread}
+          </span>
+        ) : null}
+      </Button>
+      {open ? (
+        <div className="glass animate-rise absolute right-0 top-11 z-50 w-80 rounded-2xl p-2">
+          {items.length === 0 ? (
+            <p className="p-4 text-sm text-muted-foreground">No notifications yet.</p>
+          ) : (
+            <ul className="max-h-80 overflow-y-auto">
+              {items.map((n) => (
+                <li key={n.id} className="rounded-xl px-3 py-2 hover:bg-secondary/50">
+                  <p className="text-sm font-medium">{n.title}</p>
+                  {n.body ? <p className="text-xs text-muted-foreground">{n.body}</p> : null}
+                  <p className="text-[0.7rem] text-muted-foreground">{relativeTime(n.created_at)}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
   const { theme, toggle } = useTheme();
   const { refetch, isLoading, email } = useDashboard();
@@ -145,7 +258,9 @@ function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
         <Logo compact />
       </div>
       <div className="ml-auto flex items-center gap-2">
+        <SyncStatus />
         <RangePicker />
+        <NotificationBell />
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={refetch} aria-label="Refresh data">
