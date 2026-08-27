@@ -554,7 +554,7 @@ async function currentAttempts(connectionId: string): Promise<number> {
 
 export async function syncAll(orgId: string): Promise<SyncOutcome[]> {
   const connections = await listConnections(orgId);
-  const targets = connections.filter((c) => c.status !== "pending");
+  const targets = connections.filter((c) => c.status !== "needs_reconnect");
   const outcomes: SyncOutcome[] = [];
   for (const connection of targets) {
     outcomes.push(await syncConnection(orgId, connection.id));
@@ -563,21 +563,33 @@ export async function syncAll(orgId: string): Promise<SyncOutcome[]> {
   return outcomes;
 }
 
+/** Refreshes only the connections in this workspace whose schedule has elapsed. */
+export async function syncStale(orgId: string): Promise<SyncOutcome[]> {
+  const now = Date.now();
+  const due = (await listConnections(orgId)).filter(
+    (c) =>
+      c.status !== "needs_reconnect" && (!c.nextSyncAt || Date.parse(c.nextSyncAt) <= now),
+  );
+  const outcomes: SyncOutcome[] = [];
+  for (const connection of due) outcomes.push(await syncConnection(orgId, connection.id));
+  if (outcomes.length > 0) await generateInsights(orgId, 30);
+  return outcomes;
+}
+
 /**
  * Background pass across every workspace: only connections whose `next_sync_at`
- * has elapsed are refreshed, so provider quota is spent on stale data only.
+ * has elapsed are refreshed, so platform quota is spent on stale data only.
  */
 export async function syncDueConnections(limit = 25): Promise<{
   scanned: number;
   synced: number;
   failed: number;
 }> {
-  if (!providerConfig().apiKeyConfigured) return { scanned: 0, synced: 0, failed: 0 };
   const nowIso = new Date().toISOString();
   const { data, error } = await supabaseAdmin
     .from("social_connections")
     .select("id, org_id, next_sync_at, status")
-    .neq("status", "pending")
+    .neq("status", "needs_reconnect")
     .or(`next_sync_at.is.null,next_sync_at.lte.${nowIso}`)
     .order("next_sync_at", { ascending: true, nullsFirst: true })
     .limit(limit);
@@ -603,6 +615,48 @@ export async function syncDueConnections(limit = 25): Promise<{
   return { scanned: rows.length, synced, failed };
 }
 
+/* ------------------------------------------------------------------ */
+/* Account discovery                                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Records a *possible* public account for a handle the user typed. Nothing here
+ * proves ownership — only completing authorization does that.
+ */
+export async function discoverForWorkspace(
+  orgId: string,
+  userId: string,
+  platform: PlatformId,
+  handle: string,
+): Promise<{ found: boolean; account: null | Record<string, unknown> }> {
+  const provider = providerFor(platform);
+  const cleaned = handle.replace(/^@/, "").trim();
+  let discovered = null;
+  try {
+    discovered = await provider.discoverAccount({ handle: cleaned });
+  } catch {
+    discovered = null;
+  }
+  if (!discovered) return { found: false, account: null };
+
+  await supabaseAdmin.from("discovered_accounts").upsert(
+    {
+      org_id: orgId,
+      user_id: userId,
+      platform,
+      handle: discovered.handle,
+      display_name: discovered.displayName,
+      avatar_url: discovered.avatarUrl,
+      profile_url: discovered.profileUrl,
+      source: discovered.source,
+      confidence: discovered.confidence,
+      dismissed: false,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "org_id,platform" },
+  );
+  return { found: true, account: discovered as unknown as Record<string, unknown> };
+}
 
 /* ------------------------------------------------------------------ */
 /* Disconnect + deletion                                               */
@@ -621,30 +675,31 @@ export async function disconnectConnection(
     .maybeSingle();
   if (!row) throw new Error("That connection does not exist in this workspace.");
 
-  const profile = await loadProfile(orgId);
-  if (profile) {
-    try {
-      await socialProvider.disconnectAccount(profile.profileKey, row.platform as string);
-    } catch {
-      // The local record is removed regardless; the platform link may already be gone.
-    }
+  const platform = row.platform as string;
+  // Revoke at the platform first, then destroy the stored credential.
+  try {
+    const token = await loadTokens(connectionId);
+    if (token) await providerFor(platform).disconnect(token);
+  } catch {
+    // The local credential is destroyed regardless of what the platform says.
   }
+  await deleteTokens(connectionId);
 
   if (deleteData) {
     await supabaseAdmin.from("social_connections").delete().eq("id", connectionId);
   } else {
     await supabaseAdmin
       .from("social_connections")
-      .update({ status: "needs_reconnect", sync_status: "idle" })
+      .update({ status: "needs_reconnect", sync_status: "idle", next_sync_at: null })
       .eq("id", connectionId);
   }
   await notify(
     orgId,
     "account_disconnected",
-    `${platformName(row.platform as string)} disconnected`,
+    `${platformName(platform)} disconnected`,
     deleteData ? "Stored analytics for this account were deleted." : "Stored analytics were kept.",
     "warning",
-    { platform: row.platform },
+    { platform },
   );
 }
 
@@ -654,6 +709,7 @@ export async function deleteWorkspaceAnalytics(orgId: string): Promise<void> {
   await supabaseAdmin.from("metric_history").delete().eq("org_id", orgId);
   await supabaseAdmin.from("social_metrics").delete().eq("org_id", orgId);
   await supabaseAdmin.from("insights").delete().eq("org_id", orgId);
+  await supabaseAdmin.from("sync_logs").delete().eq("org_id", orgId);
 }
 
 export async function deleteEverything(orgId: string): Promise<void> {
@@ -666,17 +722,11 @@ export async function deleteEverything(orgId: string): Promise<void> {
     }
   }
   await deleteWorkspaceAnalytics(orgId);
-  const profile = await loadProfile(orgId);
-  if (profile) {
-    try {
-      await socialProvider.deleteProfile(profile.profileKey);
-    } catch {
-      // Provider profile may already be removed.
-    }
-    await supabaseAdmin.from("social_profiles").delete().eq("id", profile.id);
-  }
+  await supabaseAdmin.from("discovered_accounts").delete().eq("org_id", orgId);
+  await supabaseAdmin.from("oauth_states").delete().eq("org_id", orgId);
   await supabaseAdmin.from("notifications").delete().eq("org_id", orgId);
 }
+
 
 /* ------------------------------------------------------------------ */
 /* Dashboard bundle from stored data                                   */
