@@ -126,40 +126,32 @@ function relativeTime(iso: string | null): string {
   return new Date(iso).toLocaleDateString();
 }
 
-/** Honest status: LIVE only when a real, recently-synced connection exists. */
+/** Honest status: we only ever claim "last checked", never real-time. */
 function SyncStatus() {
-  const { demo, connectedCount, lastSyncedAt, syncing, syncAll } = useDashboard();
-  const fresh = lastSyncedAt !== null && Date.now() - Date.parse(lastSyncedAt) < 15 * 60_000;
+  const { accounts, lastCheckedAt, refreshing, refreshAll } = useDashboard();
 
   return (
     <div className="hidden items-center gap-2 md:flex">
       <span
         className={cn(
           "flex items-center gap-1.5 rounded-xl border border-border bg-secondary/50 px-2.5 py-1 text-xs font-semibold",
-          demo ? "text-warning" : syncing ? "text-primary" : fresh ? "text-success" : "text-muted-foreground",
+          refreshing ? "text-primary" : "text-muted-foreground",
         )}
-        title={lastSyncedAt ? `Last synchronized ${new Date(lastSyncedAt).toLocaleString()}` : undefined}
       >
-        {demo ? (
-          "DEMO DATA"
-        ) : syncing ? (
+        {refreshing ? (
           <>
-            <RefreshCw className="size-3 animate-spin" /> Syncing…
+            <RefreshCw className="size-3 animate-spin" /> Checking…
           </>
-        ) : connectedCount === 0 ? (
-          "NO ACCOUNTS"
-        ) : fresh ? (
-          <>
-            <span className="live-dot" /> LIVE
-          </>
+        ) : accounts.length === 0 ? (
+          "No accounts yet"
         ) : (
-          `UPDATED ${relativeTime(lastSyncedAt).toUpperCase()}`
+          `Last checked ${relativeTime(lastCheckedAt)}`
         )}
       </span>
-      {!demo && connectedCount > 0 ? (
-        <Button size="sm" variant="secondary" disabled={syncing} onClick={() => void syncAll()}>
-          <RefreshCw className={cn("mr-1.5 size-3.5", syncing && "animate-spin")} />
-          Sync all
+      {accounts.length > 0 ? (
+        <Button size="sm" variant="secondary" disabled={refreshing} onClick={() => void refreshAll()}>
+          <RefreshCw className={cn("mr-1.5 size-3.5", refreshing && "animate-spin")} />
+          Refresh all
         </Button>
       ) : null}
     </div>
