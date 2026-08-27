@@ -212,6 +212,62 @@ export type Database = {
           },
         ]
       }
+      discovered_accounts: {
+        Row: {
+          avatar_url: string | null
+          confidence: string
+          created_at: string
+          dismissed: boolean
+          display_name: string | null
+          handle: string
+          id: string
+          org_id: string
+          platform: string
+          profile_url: string | null
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          confidence?: string
+          created_at?: string
+          dismissed?: boolean
+          display_name?: string | null
+          handle: string
+          id?: string
+          org_id: string
+          platform: string
+          profile_url?: string | null
+          source?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          confidence?: string
+          created_at?: string
+          dismissed?: boolean
+          display_name?: string | null
+          handle?: string
+          id?: string
+          org_id?: string
+          platform?: string
+          profile_url?: string | null
+          source?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discovered_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       insights: {
         Row: {
           body: string
@@ -385,6 +441,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "notifications_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      oauth_states: {
+        Row: {
+          code_verifier: string | null
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          handle: string | null
+          org_id: string
+          platform: string
+          redirect_to: string
+          state: string
+          user_id: string
+        }
+        Insert: {
+          code_verifier?: string | null
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          handle?: string | null
+          org_id: string
+          platform: string
+          redirect_to: string
+          state: string
+          user_id: string
+        }
+        Update: {
+          code_verifier?: string | null
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          handle?: string | null
+          org_id?: string
+          platform?: string
+          redirect_to?: string
+          state?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oauth_states_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -922,6 +1025,8 @@ export type Database = {
       social_connections: {
         Row: {
           avatar_url: string | null
+          capabilities: Json
+          connected_at: string | null
           created_at: string
           display_name: string | null
           external_id: string | null
@@ -933,7 +1038,8 @@ export type Database = {
           org_id: string
           permissions: Json
           platform: string
-          social_profile_id: string
+          scopes: Json
+          social_profile_id: string | null
           status: string
           sync_attempts: number
           sync_completed_at: string | null
@@ -946,6 +1052,8 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          capabilities?: Json
+          connected_at?: string | null
           created_at?: string
           display_name?: string | null
           external_id?: string | null
@@ -957,7 +1065,8 @@ export type Database = {
           org_id: string
           permissions?: Json
           platform: string
-          social_profile_id: string
+          scopes?: Json
+          social_profile_id?: string | null
           status?: string
           sync_attempts?: number
           sync_completed_at?: string | null
@@ -970,6 +1079,8 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          capabilities?: Json
+          connected_at?: string | null
           created_at?: string
           display_name?: string | null
           external_id?: string | null
@@ -981,7 +1092,8 @@ export type Database = {
           org_id?: string
           permissions?: Json
           platform?: string
-          social_profile_id?: string
+          scopes?: Json
+          social_profile_id?: string | null
           status?: string
           sync_attempts?: number
           sync_completed_at?: string | null
@@ -998,13 +1110,6 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "social_connections_social_profile_id_fkey"
-            columns: ["social_profile_id"]
-            isOneToOne: false
-            referencedRelation: "social_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1120,43 +1225,56 @@ export type Database = {
           },
         ]
       }
-      social_profiles: {
+      social_tokens: {
         Row: {
+          access_token_ciphertext: string
+          connection_id: string
           created_at: string
+          expires_at: string | null
           id: string
+          metadata: Json
           org_id: string
-          profile_key_ciphertext: string | null
-          profile_ref: string | null
-          provider: string
-          title: string | null
+          platform: string
+          refresh_token_ciphertext: string | null
+          scopes: Json
           updated_at: string
-          user_id: string
         }
         Insert: {
+          access_token_ciphertext: string
+          connection_id: string
           created_at?: string
+          expires_at?: string | null
           id?: string
+          metadata?: Json
           org_id: string
-          profile_key_ciphertext?: string | null
-          profile_ref?: string | null
-          provider?: string
-          title?: string | null
+          platform: string
+          refresh_token_ciphertext?: string | null
+          scopes?: Json
           updated_at?: string
-          user_id: string
         }
         Update: {
+          access_token_ciphertext?: string
+          connection_id?: string
           created_at?: string
+          expires_at?: string | null
           id?: string
+          metadata?: Json
           org_id?: string
-          profile_key_ciphertext?: string | null
-          profile_ref?: string | null
-          provider?: string
-          title?: string | null
+          platform?: string
+          refresh_token_ciphertext?: string | null
+          scopes?: Json
           updated_at?: string
-          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "social_profiles_org_id_fkey"
+            foreignKeyName: "social_tokens_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "social_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_tokens_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1211,6 +1329,57 @@ export type Database = {
             columns: ["provider_account_id"]
             isOneToOne: false
             referencedRelation: "provider_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_logs: {
+        Row: {
+          connection_id: string | null
+          created_at: string
+          duration_ms: number | null
+          id: string
+          items_synced: number
+          message: string | null
+          org_id: string
+          platform: string
+          status: string
+        }
+        Insert: {
+          connection_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          items_synced?: number
+          message?: string | null
+          org_id: string
+          platform: string
+          status: string
+        }
+        Update: {
+          connection_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          items_synced?: number
+          message?: string | null
+          org_id?: string
+          platform?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_logs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "social_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sync_logs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]

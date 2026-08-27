@@ -7,27 +7,32 @@ import { PLATFORM_IDS, type PlatformId } from "./social/platforms";
 const orgInput = z.object({ orgId: z.string().uuid() });
 const platformEnum = z.enum(PLATFORM_IDS as [PlatformId, ...PlatformId[]]);
 
-/** Connections + provider configuration for the Accounts page. */
+/** Connections + per-platform integration readiness for the Accounts page. */
 export const getSocialState = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => orgInput.parse(input))
   .handler(async ({ data, context }) => {
     await assertMember(context.supabase, data.orgId, context.userId);
     const { listConnections, refreshConnectionStatuses } = await import("./services/social.server");
-    const { providerConfig } = await import("./services/ayrshare.server");
-    const config = providerConfig();
+    const { allIntegrationStatuses } = await import("./social/oauth/config.server");
     let connections = await listConnections(data.orgId);
-    if (config.apiKeyConfigured) {
-      try {
-        connections = await refreshConnectionStatuses(data.orgId);
-      } catch {
-        // Keep the stored view when the provider is temporarily unreachable.
-      }
+    try {
+      connections = await refreshConnectionStatuses(data.orgId);
+    } catch {
+      // Keep the stored view when reconciliation temporarily fails.
     }
-    return { connections, config };
+    const integrations = allIntegrationStatuses();
+    return {
+      connections,
+      integrations,
+      config: {
+        anyConfigured: integrations.some((i) => i.configured),
+        configuredCount: integrations.filter((i) => i.configured).length,
+      },
+    };
   });
 
-/** Creates the isolated provider profile (if needed) and returns an auth URL. */
+/** Starts the official authorization flow and returns the platform's URL. */
 export const startConnection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
@@ -41,37 +46,29 @@ export const startConnection = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertMember(context.supabase, data.orgId, context.userId);
-    const { ensureSocialProfile, upsertPendingConnection } = await import("./services/social.server");
-    const { socialProvider, providerConfig, NOT_CONFIGURED_MESSAGE, LINKING_NOT_CONFIGURED_MESSAGE } =
-      await import("./services/ayrshare.server");
-
-    // Fail loudly and specifically before touching the database.
-    const config = providerConfig();
-    if (!config.apiKeyConfigured) {
-      console.error("[connect] aborted: AYRSHARE_API_KEY is not set on the server.");
-      throw new Error(NOT_CONFIGURED_MESSAGE);
-    }
-    if (!config.linkingConfigured) {
-      console.error(`[connect] aborted: missing ${config.missing.join(", ")}.`);
-      throw new Error(LINKING_NOT_CONFIGURED_MESSAGE);
-    }
-    console.info(`[connect] starting ${data.platform} authorization for org ${data.orgId}`);
-
-    const profile = await ensureSocialProfile(data.orgId, context.userId, `SocialPulse ${data.orgId.slice(0, 8)}`);
-    await upsertPendingConnection({
+    const { beginAuthorization } = await import("./social/oauth/flow.server");
+    const origin = new URL(data.returnUrl).origin;
+    const { url } = await beginAuthorization({
       orgId: data.orgId,
       userId: context.userId,
-      profileId: profile.id,
       platform: data.platform,
-      handle: data.handle?.replace(/^@/, "") ?? null,
+      handle: data.handle,
+      origin,
+      redirectTo: data.returnUrl,
     });
-    const { url } = await socialProvider.connectAccount({
-      profileKey: profile.profileKey,
-      redirect: data.returnUrl,
-      platforms: [data.platform],
-    });
-    console.info(`[connect] authorization URL issued for ${data.platform}`);
     return { url };
+  });
+
+/** Looks for a public profile that may belong to the user. Never authoritative. */
+export const discoverAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    orgInput.extend({ platform: platformEnum, handle: z.string().trim().min(1).max(120) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertMember(context.supabase, data.orgId, context.userId);
+    const { discoverForWorkspace } = await import("./services/social.server");
+    return discoverForWorkspace(data.orgId, context.userId, data.platform, data.handle);
   });
 
 /** Runs after the platform redirects back — reconciles and syncs. */
@@ -80,14 +77,11 @@ export const completeConnection = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => orgInput.parse(input))
   .handler(async ({ data, context }) => {
     await assertMember(context.supabase, data.orgId, context.userId);
-    const { refreshConnectionStatuses, syncAll, notify } = await import("./services/social.server");
-    const connections = await refreshConnectionStatuses(data.orgId);
-    if (connections.length > 0) {
-      await notify(data.orgId, "account_connected", "Account connected", null, "success", {});
-    }
-    const outcomes = await syncAll(data.orgId);
+    const { refreshConnectionStatuses, syncStale } = await import("./services/social.server");
+    const outcomes = await syncStale(data.orgId);
     return { connections: await refreshConnectionStatuses(data.orgId), outcomes };
   });
+
 
 export const syncAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

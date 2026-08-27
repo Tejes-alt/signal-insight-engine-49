@@ -1,11 +1,11 @@
 /**
  * SocialPulse synchronization + analytics service. Server-only.
  *
- * Owns: the per-workspace provider profile, connection lifecycle, real data
- * synchronization, normalized persistence, historical recording, insight
+ * Owns: connection lifecycle, real data synchronization through the official
+ * platform providers, normalized persistence, historical recording, insight
  * generation and privacy/deletion actions.
  *
- * Nothing in here fabricates a number. When the provider does not return a
+ * Nothing in here fabricates a number. When a platform does not return a
  * metric it is stored as absent and rendered with the reason.
  */
 
@@ -18,14 +18,14 @@ import {
   type MetricStatus,
 } from "../social/model";
 import { PLATFORMS, platformName, type PlatformId } from "../social/platforms";
+import { providerFor } from "../social/oauth/registry.server";
+import { allIntegrationStatuses, integrationStatus } from "../social/oauth/config.server";
+import { deleteTokens, loadTokens, usableToken } from "../social/oauth/tokens.server";
 import {
-  ProviderNotConfiguredError,
+  IntegrationNotConfiguredError,
   ProviderRequestError,
-  decryptSecret,
-  encryptSecret,
-  providerConfig,
-  socialProvider,
-} from "./ayrshare.server";
+  type ProviderAccount,
+} from "../social/oauth/types";
 import {
   available,
   growthFromSeries,
@@ -70,72 +70,25 @@ export interface ConnectionRow {
   metrics: StoredMetrics;
 }
 
-
-/* ------------------------------------------------------------------ */
-/* Provider profile (one isolated profile per workspace)               */
-/* ------------------------------------------------------------------ */
-
-interface ProfileRecord {
-  id: string;
-  profileKey: string;
-}
-
-export async function ensureSocialProfile(
-  orgId: string,
-  userId: string,
-  title: string,
-): Promise<ProfileRecord> {
-  const { data: existing, error } = await supabaseAdmin
-    .from("social_profiles")
-    .select("id, profile_key_ciphertext")
-    .eq("org_id", orgId)
-    .eq("provider", "ayrshare")
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-
-  if (existing?.profile_key_ciphertext) {
-    return { id: existing.id, profileKey: decryptSecret(existing.profile_key_ciphertext) };
-  }
-
-  const profile = await socialProvider.createProfile(title);
-  const payload = {
-    org_id: orgId,
-    user_id: userId,
-    provider: "ayrshare",
-    profile_key_ciphertext: encryptSecret(profile.profileKey),
-    profile_ref: profile.refId,
-    title,
+/** The account identity stored on the connection row at authorization time. */
+function accountFromRow(row: {
+  external_id?: string | null;
+  handle?: string | null;
+  display_name?: string | null;
+  avatar_url?: string | null;
+  metadata?: unknown;
+}): ProviderAccount {
+  return {
+    externalId: row.external_id ?? "",
+    handle: row.handle ?? null,
+    displayName: row.display_name ?? null,
+    avatarUrl: row.avatar_url ?? null,
+    profileUrl: null,
+    metadata: (row.metadata ?? {}) as JsonObject,
   };
-
-  if (existing) {
-    const { error: updateError } = await supabaseAdmin
-      .from("social_profiles")
-      .update(payload)
-      .eq("id", existing.id);
-    if (updateError) throw new Error(updateError.message);
-    return { id: existing.id, profileKey: profile.profileKey };
-  }
-
-  const { data: inserted, error: insertError } = await supabaseAdmin
-    .from("social_profiles")
-    .insert(payload)
-    .select("id")
-    .single();
-  if (insertError) throw new Error(insertError.message);
-  return { id: inserted.id, profileKey: profile.profileKey };
 }
 
-async function loadProfile(orgId: string): Promise<ProfileRecord | null> {
-  const { data, error } = await supabaseAdmin
-    .from("social_profiles")
-    .select("id, profile_key_ciphertext")
-    .eq("org_id", orgId)
-    .eq("provider", "ayrshare")
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  if (!data?.profile_key_ciphertext) return null;
-  return { id: data.id, profileKey: decryptSecret(data.profile_key_ciphertext) };
-}
+
 
 /* ------------------------------------------------------------------ */
 /* Notifications                                                       */
@@ -195,81 +148,68 @@ export async function listConnections(orgId: string): Promise<ConnectionRow[]> {
   });
 }
 
-export async function upsertPendingConnection(input: {
+/**
+ * Records the authorized account on the connection row. Called by the OAuth
+ * callback once the platform itself has confirmed ownership.
+ */
+export async function upsertConnectedAccount(input: {
   orgId: string;
   userId: string;
-  profileId: string;
   platform: PlatformId;
-  handle: string | null;
+  account: ProviderAccount;
+  scopes: string[];
+  capabilities: MetricKey[];
 }): Promise<ConnectionRow> {
+  const now = new Date().toISOString();
   const { error } = await supabaseAdmin.from("social_connections").upsert(
     {
       org_id: input.orgId,
       user_id: input.userId,
-      social_profile_id: input.profileId,
       platform: input.platform,
-      handle: input.handle,
-      status: "pending",
+      external_id: input.account.externalId,
+      handle: input.account.handle,
+      display_name: input.account.displayName,
+      avatar_url: input.account.avatarUrl,
+      metadata: input.account.metadata,
+      permissions: input.scopes,
+      scopes: input.scopes,
+      capabilities: input.capabilities,
+      status: "connected",
       sync_status: "idle",
+      sync_error: null,
+      sync_attempts: 0,
+      connected_at: now,
+      next_sync_at: now,
     },
     { onConflict: "org_id,platform" },
   );
   if (error) throw new Error(error.message);
-  const connections = await listConnections(input.orgId);
-  const created = connections.find((c) => c.platform === input.platform);
-  if (!created) throw new Error("The connection could not be created.");
+
+  const created = (await listConnections(input.orgId)).find((c) => c.platform === input.platform);
+  if (!created) throw new Error("The connection could not be stored.");
   return created;
 }
 
 /**
- * Reconciles stored connections against what the user has actually authorized
- * at the provider. Platforms the user revoked are marked as needing
+ * Reconciles stored connections against the credentials still held. A
+ * connection whose credentials were revoked or deleted is marked as needing
  * reconnection rather than silently disappearing.
  */
 export async function refreshConnectionStatuses(orgId: string): Promise<ConnectionRow[]> {
-  const profile = await loadProfile(orgId);
-  if (!profile) return listConnections(orgId);
-
-  let accounts: Awaited<ReturnType<typeof socialProvider.getConnectionStatus>>;
-  try {
-    accounts = await socialProvider.getConnectionStatus(profile.profileKey);
-  } catch (error) {
-    if (error instanceof ProviderNotConfiguredError) return listConnections(orgId);
-    throw error;
-  }
-
-  const authorized = new Map(accounts.map((a) => [a.platform, a]));
   const stored = await listConnections(orgId);
-
-  for (const account of accounts) {
-    const match = stored.find((c) => c.platform === account.platform);
-    const payload: Record<string, unknown> = {
-      org_id: orgId,
-      platform: account.platform,
-      handle: account.username ?? match?.handle ?? null,
-      display_name: account.displayName ?? match?.displayName ?? null,
-      avatar_url: account.avatarUrl ?? match?.avatarUrl ?? null,
-      external_id: account.externalId,
-      status: match?.status === "synced" ? "synced" : "connected",
-      metadata: account.metadata,
-    };
-    if (match) {
-      await supabaseAdmin.from("social_connections").update(payload as never).eq("id", match.id);
-    }
-  }
-
   for (const connection of stored) {
-    if (connection.status === "pending") continue;
-    if (!authorized.has(connection.platform)) {
+    if (connection.status === "needs_reconnect") continue;
+    const token = await loadTokens(connection.id);
+    if (!token) {
       await supabaseAdmin
         .from("social_connections")
-        .update({ status: "needs_reconnect" })
+        .update({ status: "needs_reconnect", sync_status: "idle" })
         .eq("id", connection.id);
     }
   }
-
   return listConnections(orgId);
 }
+
 
 /* ------------------------------------------------------------------ */
 /* Normalization                                                       */
@@ -376,38 +316,6 @@ export function normalizeAccountMetrics(
   return out;
 }
 
-function normalizePost(entry: Record<string, unknown>): {
-  platform: string;
-  externalId: string;
-  title: string | null;
-  caption: string | null;
-  mediaType: string | null;
-  thumbnailUrl: string | null;
-  permalink: string | null;
-  publishedAt: string;
-  metrics: StoredMetrics;
-} | null {
-  const platform = String(entry["platform"] ?? "");
-  const externalId = String(entry["id"] ?? entry["postId"] ?? entry["socialId"] ?? "");
-  if (!platform || !externalId) return null;
-  const created = String(entry["created"] ?? entry["createdAt"] ?? entry["publishedAt"] ?? "");
-  const publishedAt = created && !Number.isNaN(Date.parse(created)) ? new Date(created).toISOString() : new Date().toISOString();
-  const caption = typeof entry["post"] === "string" ? (entry["post"] as string) : null;
-  const mediaUrls = Array.isArray(entry["mediaUrls"]) ? (entry["mediaUrls"] as unknown[]) : [];
-
-  return {
-    platform,
-    externalId,
-    title: caption ? caption.slice(0, 120) : null,
-    caption,
-    mediaType: mediaUrls.length > 0 ? "media" : "text",
-    thumbnailUrl: typeof mediaUrls[0] === "string" ? (mediaUrls[0] as string) : null,
-    permalink: typeof entry["postUrl"] === "string" ? (entry["postUrl"] as string) : null,
-    publishedAt,
-    metrics: normalizeAccountMetrics(platform, entry),
-  };
-}
-
 /* ------------------------------------------------------------------ */
 /* Synchronization                                                     */
 /* ------------------------------------------------------------------ */
@@ -423,21 +331,51 @@ async function recordHistory(
   orgId: string,
   connectionId: string,
   platform: string,
+  metricDate: string,
   metrics: StoredMetrics,
 ): Promise<void> {
-  const today = new Date().toISOString().slice(0, 10);
   await supabaseAdmin
     .from("metric_history")
     .upsert(
-      { org_id: orgId, connection_id: connectionId, platform, metric_date: today, metrics: metrics as JsonObject },
+      {
+        org_id: orgId,
+        connection_id: connectionId,
+        platform,
+        metric_date: metricDate,
+        metrics: metrics as JsonObject,
+      },
       { onConflict: "connection_id,metric_date" },
     );
 }
 
+async function logSync(input: {
+  orgId: string;
+  connectionId: string;
+  platform: string;
+  status: string;
+  message: string | null;
+  itemsSynced: number;
+  durationMs: number;
+}): Promise<void> {
+  await supabaseAdmin.from("sync_logs").insert({
+    org_id: input.orgId,
+    connection_id: input.connectionId,
+    platform: input.platform,
+    status: input.status,
+    message: input.message,
+    items_synced: input.itemsSynced,
+    duration_ms: input.durationMs,
+  });
+}
+
+/**
+ * Pulls live analytics for one connection straight from the platform's official
+ * API and stores the normalized result, daily history and content performance.
+ */
 export async function syncConnection(orgId: string, connectionId: string): Promise<SyncOutcome> {
   const { data: row, error } = await supabaseAdmin
     .from("social_connections")
-    .select("id, platform, org_id")
+    .select("id, platform, org_id, external_id, handle, display_name, avatar_url, metadata")
     .eq("id", connectionId)
     .eq("org_id", orgId)
     .maybeSingle();
@@ -445,18 +383,36 @@ export async function syncConnection(orgId: string, connectionId: string): Promi
   if (!row) throw new Error("That connection does not exist in this workspace.");
 
   const platform = row.platform as string;
-  const profile = await loadProfile(orgId);
-  if (!profile) throw new ProviderNotConfiguredError();
+  const provider = providerFor(platform);
+  const startedAt = Date.now();
 
-  const startedAt = new Date().toISOString();
   await supabaseAdmin
     .from("social_connections")
-    .update({ sync_status: "syncing", status: "syncing", sync_started_at: startedAt, sync_error: null })
+    .update({
+      sync_status: "syncing",
+      status: "syncing",
+      sync_started_at: new Date(startedAt).toISOString(),
+      sync_error: null,
+    })
     .eq("id", connectionId);
 
   try {
-    const analytics = await socialProvider.getAccountAnalytics(profile.profileKey, [platform]);
-    const metrics = normalizeAccountMetrics(platform, analytics[platform] ?? {});
+    const token = await usableToken(provider, orgId, connectionId);
+    const account = await provider.getAccount(token).catch(() => accountFromRow(row));
+
+    // Keep the stored identity fresh — handles and avatars change.
+    await supabaseAdmin
+      .from("social_connections")
+      .update({
+        external_id: account.externalId || (row.external_id as string | null),
+        handle: account.handle ?? (row.handle as string | null),
+        display_name: account.displayName ?? (row.display_name as string | null),
+        avatar_url: account.avatarUrl ?? (row.avatar_url as string | null),
+      })
+      .eq("id", connectionId);
+
+    const analytics = await provider.getAnalytics(token, account);
+    const metrics = analytics.metrics;
 
     await supabaseAdmin.from("social_metrics").upsert(
       {
@@ -468,21 +424,26 @@ export async function syncConnection(orgId: string, connectionId: string): Promi
       },
       { onConflict: "connection_id" },
     );
-    await recordHistory(orgId, connectionId, platform, metrics);
+
+    const today = new Date().toISOString().slice(0, 10);
+    await recordHistory(orgId, connectionId, platform, today, metrics);
+    for (const point of analytics.history) {
+      if (point.date === today) continue;
+      await recordHistory(orgId, connectionId, platform, point.date, point.metrics);
+    }
 
     let postsStored = 0;
     try {
-      const history = await socialProvider.getHistory(profile.profileKey, 100);
-      for (const entry of history) {
-        const post = normalizePost(entry);
-        if (!post || post.platform !== platform) continue;
+      const items = await provider.getContent(token, account);
+      const detailed = await provider.getContentAnalytics(token, account, items);
+      for (const post of detailed) {
         const { data: saved, error: postError } = await supabaseAdmin
           .from("social_posts")
           .upsert(
             {
               org_id: orgId,
               connection_id: connectionId,
-              platform: post.platform,
+              platform,
               external_post_id: post.externalId,
               title: post.title,
               caption: post.caption,
@@ -508,7 +469,7 @@ export async function syncConnection(orgId: string, connectionId: string): Promi
         postsStored += 1;
       }
     } catch {
-      // Content history is optional — account analytics already succeeded.
+      // Content performance is optional — account analytics already succeeded.
     }
 
     const completedAt = new Date().toISOString();
@@ -525,19 +486,30 @@ export async function syncConnection(orgId: string, connectionId: string): Promi
       })
       .eq("id", connectionId);
 
+    await logSync({
+      orgId,
+      connectionId,
+      platform,
+      status: "success",
+      message: null,
+      itemsSynced: postsStored,
+      durationMs: Date.now() - startedAt,
+    });
     await notify(orgId, "sync_completed", `${platformName(platform)} updated`, null, "success", { platform });
     return { platform, ok: true, postsStored };
   } catch (rawError) {
     const message =
-      rawError instanceof ProviderRequestError
+      rawError instanceof IntegrationNotConfiguredError
         ? rawError.message
         : rawError instanceof Error
           ? rawError.message
           : "The synchronization failed.";
-    const notAuthorized = rawError instanceof ProviderRequestError && rawError.code === "not_authorized";
+    const notAuthorized =
+      rawError instanceof ProviderRequestError &&
+      (rawError.code === "not_authorized" || rawError.status === 401);
     const rateLimited = rawError instanceof ProviderRequestError && rawError.code === "rate_limited";
     const status: ConnectionStatus = notAuthorized ? "permission_error" : "unavailable";
-    // Exponential backoff so a failing account never hammers the provider.
+    // Exponential backoff so a failing account never hammers the platform API.
     const attempts = (await currentAttempts(connectionId)) + 1;
     const backoffMinutes = notAuthorized
       ? 24 * 60
@@ -553,10 +525,20 @@ export async function syncConnection(orgId: string, connectionId: string): Promi
         next_sync_at: new Date(Date.now() + backoffMinutes * 60_000).toISOString(),
       })
       .eq("id", connectionId);
+    await logSync({
+      orgId,
+      connectionId,
+      platform,
+      status: "error",
+      message,
+      itemsSynced: 0,
+      durationMs: Date.now() - startedAt,
+    });
     await notify(orgId, "sync_failed", `${platformName(platform)} sync failed`, message, "error", { platform });
     return { platform, ok: false, error: message, postsStored: 0 };
   }
 }
+
 
 /** How often a healthy connection refreshes itself in the background. */
 export const DEFAULT_SYNC_INTERVAL_MINUTES = 180;
@@ -572,7 +554,7 @@ async function currentAttempts(connectionId: string): Promise<number> {
 
 export async function syncAll(orgId: string): Promise<SyncOutcome[]> {
   const connections = await listConnections(orgId);
-  const targets = connections.filter((c) => c.status !== "pending");
+  const targets = connections.filter((c) => c.status !== "needs_reconnect");
   const outcomes: SyncOutcome[] = [];
   for (const connection of targets) {
     outcomes.push(await syncConnection(orgId, connection.id));
@@ -581,21 +563,33 @@ export async function syncAll(orgId: string): Promise<SyncOutcome[]> {
   return outcomes;
 }
 
+/** Refreshes only the connections in this workspace whose schedule has elapsed. */
+export async function syncStale(orgId: string): Promise<SyncOutcome[]> {
+  const now = Date.now();
+  const due = (await listConnections(orgId)).filter(
+    (c) =>
+      c.status !== "needs_reconnect" && (!c.nextSyncAt || Date.parse(c.nextSyncAt) <= now),
+  );
+  const outcomes: SyncOutcome[] = [];
+  for (const connection of due) outcomes.push(await syncConnection(orgId, connection.id));
+  if (outcomes.length > 0) await generateInsights(orgId, 30);
+  return outcomes;
+}
+
 /**
  * Background pass across every workspace: only connections whose `next_sync_at`
- * has elapsed are refreshed, so provider quota is spent on stale data only.
+ * has elapsed are refreshed, so platform quota is spent on stale data only.
  */
 export async function syncDueConnections(limit = 25): Promise<{
   scanned: number;
   synced: number;
   failed: number;
 }> {
-  if (!providerConfig().apiKeyConfigured) return { scanned: 0, synced: 0, failed: 0 };
   const nowIso = new Date().toISOString();
   const { data, error } = await supabaseAdmin
     .from("social_connections")
     .select("id, org_id, next_sync_at, status")
-    .neq("status", "pending")
+    .neq("status", "needs_reconnect")
     .or(`next_sync_at.is.null,next_sync_at.lte.${nowIso}`)
     .order("next_sync_at", { ascending: true, nullsFirst: true })
     .limit(limit);
@@ -621,6 +615,48 @@ export async function syncDueConnections(limit = 25): Promise<{
   return { scanned: rows.length, synced, failed };
 }
 
+/* ------------------------------------------------------------------ */
+/* Account discovery                                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Records a *possible* public account for a handle the user typed. Nothing here
+ * proves ownership — only completing authorization does that.
+ */
+export async function discoverForWorkspace(
+  orgId: string,
+  userId: string,
+  platform: PlatformId,
+  handle: string,
+): Promise<{ found: boolean; account: null | Record<string, unknown> }> {
+  const provider = providerFor(platform);
+  const cleaned = handle.replace(/^@/, "").trim();
+  let discovered = null;
+  try {
+    discovered = await provider.discoverAccount({ handle: cleaned });
+  } catch {
+    discovered = null;
+  }
+  if (!discovered) return { found: false, account: null };
+
+  await supabaseAdmin.from("discovered_accounts").upsert(
+    {
+      org_id: orgId,
+      user_id: userId,
+      platform,
+      handle: discovered.handle,
+      display_name: discovered.displayName,
+      avatar_url: discovered.avatarUrl,
+      profile_url: discovered.profileUrl,
+      source: discovered.source,
+      confidence: discovered.confidence,
+      dismissed: false,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "org_id,platform" },
+  );
+  return { found: true, account: discovered as unknown as Record<string, unknown> };
+}
 
 /* ------------------------------------------------------------------ */
 /* Disconnect + deletion                                               */
@@ -639,30 +675,31 @@ export async function disconnectConnection(
     .maybeSingle();
   if (!row) throw new Error("That connection does not exist in this workspace.");
 
-  const profile = await loadProfile(orgId);
-  if (profile) {
-    try {
-      await socialProvider.disconnectAccount(profile.profileKey, row.platform as string);
-    } catch {
-      // The local record is removed regardless; the platform link may already be gone.
-    }
+  const platform = row.platform as string;
+  // Revoke at the platform first, then destroy the stored credential.
+  try {
+    const token = await loadTokens(connectionId);
+    if (token) await providerFor(platform).disconnect(token);
+  } catch {
+    // The local credential is destroyed regardless of what the platform says.
   }
+  await deleteTokens(connectionId);
 
   if (deleteData) {
     await supabaseAdmin.from("social_connections").delete().eq("id", connectionId);
   } else {
     await supabaseAdmin
       .from("social_connections")
-      .update({ status: "needs_reconnect", sync_status: "idle" })
+      .update({ status: "needs_reconnect", sync_status: "idle", next_sync_at: null })
       .eq("id", connectionId);
   }
   await notify(
     orgId,
     "account_disconnected",
-    `${platformName(row.platform as string)} disconnected`,
+    `${platformName(platform)} disconnected`,
     deleteData ? "Stored analytics for this account were deleted." : "Stored analytics were kept.",
     "warning",
-    { platform: row.platform },
+    { platform },
   );
 }
 
@@ -672,6 +709,7 @@ export async function deleteWorkspaceAnalytics(orgId: string): Promise<void> {
   await supabaseAdmin.from("metric_history").delete().eq("org_id", orgId);
   await supabaseAdmin.from("social_metrics").delete().eq("org_id", orgId);
   await supabaseAdmin.from("insights").delete().eq("org_id", orgId);
+  await supabaseAdmin.from("sync_logs").delete().eq("org_id", orgId);
 }
 
 export async function deleteEverything(orgId: string): Promise<void> {
@@ -684,17 +722,11 @@ export async function deleteEverything(orgId: string): Promise<void> {
     }
   }
   await deleteWorkspaceAnalytics(orgId);
-  const profile = await loadProfile(orgId);
-  if (profile) {
-    try {
-      await socialProvider.deleteProfile(profile.profileKey);
-    } catch {
-      // Provider profile may already be removed.
-    }
-    await supabaseAdmin.from("social_profiles").delete().eq("id", profile.id);
-  }
+  await supabaseAdmin.from("discovered_accounts").delete().eq("org_id", orgId);
+  await supabaseAdmin.from("oauth_states").delete().eq("org_id", orgId);
   await supabaseAdmin.from("notifications").delete().eq("org_id", orgId);
 }
+
 
 /* ------------------------------------------------------------------ */
 /* Dashboard bundle from stored data                                   */
