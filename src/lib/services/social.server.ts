@@ -974,6 +974,8 @@ export interface SetupStatus {
   database: boolean;
   profileCreated: boolean;
   connections: number;
+  backgroundSync: { enabled: boolean; due: number; nextSyncAt: string | null };
+  analyticsReady: boolean;
   recentSyncs: { platform: string; status: string; at: string | null; error: string | null }[];
 }
 
@@ -992,11 +994,26 @@ export async function setupStatus(orgId: string): Promise<SetupStatus> {
   } catch {
     database = false;
   }
+  const now = Date.now();
+  const schedule = connections
+    .filter((c) => c.status !== "pending")
+    .map((c) => c.nextSyncAt)
+    .filter((v): v is string => Boolean(v))
+    .sort();
   return {
     provider: config,
     database,
     profileCreated: Boolean(await loadProfile(orgId)),
     connections: connections.length,
+    backgroundSync: {
+      enabled: config.apiKeyConfigured,
+      due: connections.filter(
+        (c) => c.status !== "pending" && (!c.nextSyncAt || Date.parse(c.nextSyncAt) <= now),
+      ).length,
+      nextSyncAt: schedule[0] ?? null,
+    },
+    analyticsReady: connections.some((c) => c.lastSyncedAt !== null),
+
     recentSyncs: connections.map((c) => ({
       platform: c.platform,
       status: c.syncStatus,
