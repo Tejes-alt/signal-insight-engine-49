@@ -88,6 +88,7 @@ function AccountsPage() {
 
   const [handles, setHandles] = useState<Partial<Record<PlatformId, string>>>({});
   const [busy, setBusy] = useState<PlatformId | null>(null);
+  const [failures, setFailures] = useState<Partial<Record<PlatformId, string>>>({});
   const [step, setStep] = useState<number | null>(null);
 
   const invalidate = () => {
@@ -138,13 +139,21 @@ function AccountsPage() {
         },
       });
     },
-    onMutate: (platform: PlatformId) => setBusy(platform),
-    onSettled: () => setBusy(null),
+    onMutate: (platform: PlatformId) => {
+      setBusy(platform);
+      setFailures((prev) => ({ ...prev, [platform]: undefined }));
+    },
     onSuccess: ({ url }) => {
+      // Hand off to the platform's own authorization screen.
+      console.info("[connect] redirecting to provider authorization");
       window.location.href = url;
     },
-    onError: (error: Error) =>
-      toast.error("Could not start the authorization", { description: error.message }),
+    onError: (error: Error, platform: PlatformId) => {
+      setBusy(null);
+      console.error("[connect] failed", error);
+      setFailures((prev) => ({ ...prev, [platform]: error.message }));
+      toast.error("Connection failed", { description: error.message });
+    },
   });
 
   const sync = useMutation({
@@ -210,9 +219,9 @@ function AccountsPage() {
           <div>
             <h2 className="font-display font-semibold">Social integration setup required</h2>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-              An administrator still needs to finish configuring the social integration provider for this
-              installation. Account connection stays disabled until then — Demo Mode remains fully available so you can
-              explore the product.
+              The server-side credentials for the social integration provider are missing, so authorization cannot be
+              started yet. Add AYRSHARE_API_KEY, AYRSHARE_DOMAIN and AYRSHARE_PRIVATE_KEY to the server secrets. Demo
+              Mode stays fully available in the meantime.
             </p>
           </div>
         </div>
@@ -246,7 +255,7 @@ function AccountsPage() {
                 <>
                   <div className="flex items-center gap-2 text-sm">
                     <CheckCircle2 className="size-4 text-success" />
-                    <span className="font-semibold text-success">Connected</span>
+                    <span className="font-semibold text-success">{platform.name} Connected</span>
                     {connection?.handle ? (
                       <span className="truncate text-muted-foreground">
                         {platform.handlePrefix}
@@ -315,19 +324,31 @@ function AccountsPage() {
                       {connection.syncError ? ` — ${connection.syncError}` : ""}
                     </p>
                   ) : null}
+                  {failures[platform.id] ? (
+                    <p className="text-xs leading-relaxed text-destructive">{failures[platform.id]}</p>
+                  ) : null}
                   <Button
                     className="mt-auto w-full"
-                    disabled={!providerConfigured || !linkingConfigured || busy === platform.id}
+                    variant={failures[platform.id] ? "destructive" : "default"}
+                    disabled={busy === platform.id}
                     onClick={() => connect.mutate(platform.id)}
                   >
                     {busy === platform.id ? (
                       <Loader2 className="mr-2 size-4 animate-spin" />
+                    ) : failures[platform.id] ? (
+                      <AlertTriangle className="mr-2 size-4" />
                     ) : status === "needs_reconnect" ? (
                       <RefreshCw className="mr-2 size-4" />
                     ) : (
                       <Plus className="mr-2 size-4" />
                     )}
-                    {status === "needs_reconnect" ? `Reconnect ${platform.name}` : `Connect ${platform.name}`}
+                    {busy === platform.id
+                      ? "Connecting…"
+                      : failures[platform.id]
+                        ? "Connection Failed — Try Again"
+                        : status === "needs_reconnect"
+                          ? `Reconnect ${platform.name}`
+                          : `Connect ${platform.name}`}
                     <ArrowRight className="ml-auto size-4 opacity-60 transition-transform group-hover:translate-x-0.5" />
                   </Button>
                 </>
