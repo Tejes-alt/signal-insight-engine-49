@@ -67,7 +67,7 @@ function Section({
 }
 
 function SettingsPage() {
-  const { orgId, email, workspaceName, connections, rangeDays, setRangeDays, refetch } = useDashboard();
+  const { orgId, email, workspaceName, accounts, rangeDays, setRangeDays, refetch } = useDashboard();
   const { theme, setTheme } = useTheme();
   const queryClient = useQueryClient();
   const prefsFn = useServerFn(getPreferences);
@@ -125,7 +125,7 @@ function SettingsPage() {
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Connected accounts</dt>
-              <dd className="font-medium">{connections.length}</dd>
+              <dd className="font-medium">{accounts.length}</dd>
             </div>
           </dl>
         </Section>
@@ -262,7 +262,7 @@ function SettingsPage() {
               Disconnect all accounts & delete my data
             </Button>
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Deleting removes your connections, stored metrics, history, content and insights. Social platforms may
+              Deleting removes your tracked accounts, stored snapshots, history, content and insights. Social platforms may
               keep their own records of a revoked authorization for a short period on their side.
             </p>
           </div>

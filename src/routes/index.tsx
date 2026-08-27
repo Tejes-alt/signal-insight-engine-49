@@ -96,7 +96,7 @@ function Landing() {
               <Link to="/auth">Open my dashboard</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <Link to="/auth">Explore with demo data</Link>
+              <Link to="/auth">Get started free</Link>
             </Button>
           </div>
 
@@ -172,7 +172,7 @@ function Landing() {
         <section className="mx-auto max-w-3xl px-5 py-16 text-center">
           <h2 className="font-display text-3xl font-bold">See your numbers in under a minute</h2>
           <p className="mt-3 text-sm text-muted-foreground">
-            Start in demo mode to explore the whole interface, then connect a real account whenever you're ready.
+            Add your handles and SocialPulse analyzes what your profiles share publicly — no passwords, no setup.
           </p>
           <Button asChild size="lg" className="mt-6">
             <Link to="/auth">Get started free</Link>
