@@ -1,3 +1,4 @@
+import type { JsonObject } from "../json";
 /**
  * The intelligence engine.
  *
