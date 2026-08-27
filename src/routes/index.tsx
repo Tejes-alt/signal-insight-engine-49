@@ -3,7 +3,7 @@ import { Activity, BarChart3, Eye, Heart, Play, ShieldCheck, Sparkles, Users } f
 import { Logo } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { PLATFORM_ACCENT } from "@/components/platform";
-import { PROVIDER_LIST } from "@/lib/providers/registry";
+import { PLATFORM_LIST } from "@/lib/social/platforms";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -96,7 +96,7 @@ function Landing() {
               <Link to="/auth">Open my dashboard</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
-              <Link to="/auth">Explore with demo data</Link>
+              <Link to="/auth">Get started free</Link>
             </Button>
           </div>
 
@@ -142,13 +142,12 @@ function Landing() {
             <div>
               <h2 className="font-display text-2xl font-bold">We never ask for your platform passwords</h2>
               <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                SocialPulse connects only through each platform's own official sign-in screen. You enter your handle,
-                approve access on the platform itself, and you can remove that access at any time. When a platform
-                doesn't share a particular number with us, we say so instead of guessing.
+                SocialPulse only reads what your profiles already publish openly. You enter your handle and nothing else — no
+                passwords, no setup. When a platform doesn't share a particular number, we say so instead of guessing.
               </p>
             </div>
             <ul className="flex flex-wrap justify-center gap-2">
-              {PROVIDER_LIST.map((p) => (
+              {PLATFORM_LIST.map((p) => (
                 <li
                   key={p.id}
                   className="flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-sm font-medium"
@@ -172,7 +171,7 @@ function Landing() {
         <section className="mx-auto max-w-3xl px-5 py-16 text-center">
           <h2 className="font-display text-3xl font-bold">See your numbers in under a minute</h2>
           <p className="mt-3 text-sm text-muted-foreground">
-            Start in demo mode to explore the whole interface, then connect a real account whenever you're ready.
+            Add your handles and SocialPulse analyzes what your profiles share publicly — no passwords, no setup.
           </p>
           <Button asChild size="lg" className="mt-6">
             <Link to="/auth">Get started free</Link>

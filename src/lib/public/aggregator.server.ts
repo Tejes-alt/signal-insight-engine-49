@@ -269,3 +269,28 @@ export async function listAccounts(db: DB, orgId: string): Promise<PublicAccount
     } satisfies PublicAccountView;
   });
 }
+
+/**
+ * Scheduled sweep: re-checks accounts that haven't been checked recently.
+ * Uses the privileged client because there is no user session on a cron call.
+ */
+export async function refreshStaleAccounts(limit = 25, maxAgeHours = 12) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const cutoff = new Date(Date.now() - maxAgeHours * 3_600_000).toISOString();
+  const { data } = await supabaseAdmin
+    .from("public_accounts")
+    .select("*")
+    .or(`last_checked_at.is.null,last_checked_at.lt.${cutoff}`)
+    .limit(limit);
+  const rows = (data ?? []) as AccountRow[];
+  let checked = 0;
+  for (const row of rows) {
+    try {
+      await refreshAccount(supabaseAdmin as unknown as DB, row);
+      checked += 1;
+    } catch {
+      // A single unavailable profile must never fail the sweep.
+    }
+  }
+  return { checked, considered: rows.length };
+}
