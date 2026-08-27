@@ -12,12 +12,12 @@ export const Route = createFileRoute("/_authenticated/content")({
   component: ContentPage,
   head: () => ({
     meta: [
-      { title: "Content · Pulse Social Analytics" },
+      { title: "Content · SocialPulse" },
       {
         name: "description",
         content: "See which posts, videos and reels performed best across all of your social platforms.",
       },
-      { property: "og:title", content: "Content · Pulse Social Analytics" },
+      { property: "og:title", content: "Content · SocialPulse" },
       {
         property: "og:description",
         content: "Rank every post, video and reel by views, engagement and engagement rate.",

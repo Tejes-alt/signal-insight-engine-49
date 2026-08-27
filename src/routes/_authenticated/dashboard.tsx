@@ -20,13 +20,13 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
   head: () => ({
     meta: [
-      { title: "Overview · Pulse Social Analytics" },
+      { title: "Overview · SocialPulse" },
       {
         name: "description",
         content:
           "Your unified social media overview: followers, reach, engagement and growth across every connected platform.",
       },
-      { property: "og:title", content: "Overview · Pulse Social Analytics" },
+      { property: "og:title", content: "Overview · SocialPulse" },
       {
         property: "og:description",
         content: "Followers, reach and engagement across every connected platform in one dashboard.",

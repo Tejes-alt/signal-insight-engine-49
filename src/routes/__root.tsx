@@ -81,13 +81,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Pulse — Personal social media analytics" },
+      { title: "SocialPulse — Personal social media analytics" },
       {
         name: "description",
         content:
           "All your social media analytics in one beautiful dashboard, powered by official platform APIs.",
       },
-      { property: "og:title", content: "Pulse — Personal social media analytics" },
+      { property: "og:title", content: "SocialPulse — Personal social media analytics" },
       {
         property: "og:description",
         content: "Followers, reach, engagement and content performance across every platform you publish on.",

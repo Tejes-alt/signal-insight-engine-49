@@ -10,12 +10,12 @@ export const Route = createFileRoute("/_authenticated/insights")({
   component: InsightsPage,
   head: () => ({
     meta: [
-      { title: "Insights · Pulse Social Analytics" },
+      { title: "Insights · SocialPulse" },
       {
         name: "description",
         content: "Evidence-backed observations about your posting cadence, growth and best-performing content.",
       },
-      { property: "og:title", content: "Insights · Pulse Social Analytics" },
+      { property: "og:title", content: "Insights · SocialPulse" },
       {
         property: "og:description",
         content: "Every observation states the data it was derived from — no invented numbers.",

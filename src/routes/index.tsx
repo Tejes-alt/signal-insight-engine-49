@@ -8,13 +8,13 @@ import { PROVIDER_LIST } from "@/lib/providers/registry";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Pulse — All your social analytics in one dashboard" },
+      { title: "SocialPulse — All your social analytics in one dashboard" },
       {
         name: "description",
         content:
-          "Pulse brings your YouTube, Instagram, LinkedIn, TikTok, X and Facebook analytics into one beautiful dashboard. Official APIs only — never a platform password.",
+          "SocialPulse brings your YouTube, Instagram, LinkedIn, TikTok, X and Facebook analytics into one beautiful dashboard. Official APIs only — never a platform password.",
       },
-      { property: "og:title", content: "Pulse — All your social analytics in one dashboard" },
+      { property: "og:title", content: "SocialPulse — All your social analytics in one dashboard" },
       {
         property: "og:description",
         content:
@@ -142,7 +142,7 @@ function Landing() {
             <div>
               <h2 className="font-display text-2xl font-bold">We never ask for your platform passwords</h2>
               <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                Pulse connects only through each platform's official API and authorization screen. You enter your
+                SocialPulse connects only through each platform's official API and authorization screen. You enter your
                 handle, approve access on the platform itself, and tokens stay encrypted on our server — revocable at
                 any time. When an API doesn't expose a metric, we label it unavailable rather than guessing.
               </p>
@@ -181,7 +181,7 @@ function Landing() {
       </main>
 
       <footer className="border-t border-border px-5 py-8 text-center">
-        <p className="label-mono">Pulse · Official platform APIs only</p>
+        <p className="label-mono">SocialPulse · Official platform APIs only</p>
       </footer>
     </div>
   );

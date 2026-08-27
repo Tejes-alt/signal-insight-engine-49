@@ -10,12 +10,12 @@ export const Route = createFileRoute("/_authenticated/analytics")({
   component: AnalyticsPage,
   head: () => ({
     meta: [
-      { title: "Analytics · Pulse Social Analytics" },
+      { title: "Analytics · SocialPulse" },
       {
         name: "description",
         content: "Deep-dive charts comparing growth, reach and engagement across your social platforms.",
       },
-      { property: "og:title", content: "Analytics · Pulse Social Analytics" },
+      { property: "og:title", content: "Analytics · SocialPulse" },
       {
         property: "og:description",
         content: "Compare growth, reach and engagement across every platform you publish on.",
