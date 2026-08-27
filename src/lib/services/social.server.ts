@@ -1001,24 +1001,30 @@ export async function generateInsights(orgId: string, windowDays: number): Promi
 /* Setup / admin status                                                */
 /* ------------------------------------------------------------------ */
 
+export interface IntegrationSummary {
+  platform: PlatformId;
+  name: string;
+  configured: boolean;
+  missing: string[];
+}
+
 export interface SetupStatus {
-  provider: ProviderConfigSummary;
+  integrations: IntegrationSummary[];
+  configuredCount: number;
   database: boolean;
-  profileCreated: boolean;
   connections: number;
   backgroundSync: { enabled: boolean; due: number; nextSyncAt: string | null };
   analyticsReady: boolean;
   recentSyncs: { platform: string; status: string; at: string | null; error: string | null }[];
 }
 
-export interface ProviderConfigSummary {
-  apiKeyConfigured: boolean;
-  linkingConfigured: boolean;
-  missing: string[];
-}
-
 export async function setupStatus(orgId: string): Promise<SetupStatus> {
-  const config = providerConfig();
+  const integrations: IntegrationSummary[] = allIntegrationStatuses().map((status) => ({
+    platform: status.platform,
+    name: platformName(status.platform),
+    configured: status.configured,
+    missing: status.missing,
+  }));
   const connections = await listConnections(orgId);
   let database = true;
   try {
@@ -1027,25 +1033,23 @@ export async function setupStatus(orgId: string): Promise<SetupStatus> {
     database = false;
   }
   const now = Date.now();
-  const schedule = connections
-    .filter((c) => c.status !== "pending")
+  const active = connections.filter((c) => c.status !== "needs_reconnect");
+  const schedule = active
     .map((c) => c.nextSyncAt)
     .filter((v): v is string => Boolean(v))
     .sort();
+
   return {
-    provider: config,
+    integrations,
+    configuredCount: integrations.filter((i) => i.configured).length,
     database,
-    profileCreated: Boolean(await loadProfile(orgId)),
     connections: connections.length,
     backgroundSync: {
-      enabled: config.apiKeyConfigured,
-      due: connections.filter(
-        (c) => c.status !== "pending" && (!c.nextSyncAt || Date.parse(c.nextSyncAt) <= now),
-      ).length,
+      enabled: active.length > 0,
+      due: active.filter((c) => !c.nextSyncAt || Date.parse(c.nextSyncAt) <= now).length,
       nextSyncAt: schedule[0] ?? null,
     },
     analyticsReady: connections.some((c) => c.lastSyncedAt !== null),
-
     recentSyncs: connections.map((c) => ({
       platform: c.platform,
       status: c.syncStatus,
@@ -1054,3 +1058,9 @@ export async function setupStatus(orgId: string): Promise<SetupStatus> {
     })),
   };
 }
+
+/** Per-platform readiness for the connect UI. */
+export function integrationReadiness(platform: PlatformId) {
+  return integrationStatus(platform);
+}
+
