@@ -2,163 +2,14 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertMember } from "./services/workspace.server";
-import { PLATFORM_IDS, type PlatformId } from "./social/platforms";
-
-const orgInput = z.object({ orgId: z.string().uuid() });
-const platformEnum = z.enum(PLATFORM_IDS as [PlatformId, ...PlatformId[]]);
-
-/** Connections + per-platform integration readiness for the Accounts page. */
-export const getSocialState = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => orgInput.parse(input))
-  .handler(async ({ data, context }) => {
-    await assertMember(context.supabase, data.orgId, context.userId);
-    const { listConnections, refreshConnectionStatuses } = await import("./services/social.server");
-    const { allIntegrationStatuses } = await import("./social/oauth/config.server");
-    let connections = await listConnections(data.orgId);
-    try {
-      connections = await refreshConnectionStatuses(data.orgId);
-    } catch {
-      // Keep the stored view when reconciliation temporarily fails.
-    }
-    const integrations = allIntegrationStatuses();
-    return {
-      connections,
-      integrations,
-      config: {
-        anyConfigured: integrations.some((i) => i.configured),
-        configuredCount: integrations.filter((i) => i.configured).length,
-      },
-    };
-  });
-
-/** Starts the official authorization flow and returns the platform's URL. */
-export const startConnection = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    orgInput
-      .extend({
-        platform: platformEnum,
-        handle: z.string().trim().max(120).nullable(),
-        returnUrl: z.string().url(),
-      })
-      .parse(input),
-  )
-  .handler(async ({ data, context }) => {
-    await assertMember(context.supabase, data.orgId, context.userId);
-    const { beginAuthorization } = await import("./social/oauth/flow.server");
-    const origin = new URL(data.returnUrl).origin;
-    try {
-      const { url } = await beginAuthorization({
-        orgId: data.orgId,
-        userId: context.userId,
-        platform: data.platform,
-        handle: data.handle,
-        origin,
-        redirectTo: data.returnUrl,
-      });
-      return { url, available: true as const };
-    } catch (error) {
-      // A platform that isn't set up on this installation is an expected
-      // state, not a crash: hand the UI a calm, non-technical outcome.
-      if (error instanceof Error && error.name === "IntegrationNotConfiguredError") {
-        return { url: null, available: false as const };
-      }
-      throw error;
-    }
-  });
-
-/** Looks for a public profile that may belong to the user. Never authoritative. */
-export const discoverAccount = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    orgInput.extend({ platform: platformEnum, handle: z.string().trim().min(1).max(120) }).parse(input),
-  )
-  .handler(async ({ data, context }) => {
-    await assertMember(context.supabase, data.orgId, context.userId);
-    const { discoverForWorkspace } = await import("./services/social.server");
-    return discoverForWorkspace(data.orgId, context.userId, data.platform, data.handle);
-  });
-
-/** Runs after the platform redirects back — reconciles and syncs. */
-export const completeConnection = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => orgInput.parse(input))
-  .handler(async ({ data, context }) => {
-    await assertMember(context.supabase, data.orgId, context.userId);
-    const { refreshConnectionStatuses, syncStale } = await import("./services/social.server");
-    const outcomes = await syncStale(data.orgId);
-    return { connections: await refreshConnectionStatuses(data.orgId), outcomes };
-  });
-
-
-export const syncAccount = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => orgInput.extend({ connectionId: z.string().uuid() }).parse(input))
-  .handler(async ({ data, context }) => {
-    await assertMember(context.supabase, data.orgId, context.userId);
-    const { syncConnection, generateInsights } = await import("./services/social.server");
-    const outcome = await syncConnection(data.orgId, data.connectionId);
-    await generateInsights(data.orgId, 30);
-    return outcome;
-  });
-
-export const syncAllAccounts = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => orgInput.parse(input))
-  .handler(async ({ data, context }) => {
-    await assertMember(context.supabase, data.orgId, context.userId);
-    const { syncAll } = await import("./services/social.server");
-    return { outcomes: await syncAll(data.orgId) };
-  });
 
 /**
- * Automatic refresh: syncs only the accounts whose scheduled refresh time has
- * elapsed. Safe to call on dashboard load — cached data is left untouched.
+ * Workspace-level preferences, notifications, privacy controls and internal
+ * diagnostics. Nothing here is platform-specific: public profile tracking
+ * lives in `public.functions.ts`.
  */
-export const syncStaleAccounts = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) => orgInput.parse(input))
-  .handler(async ({ data, context }) => {
-    await assertMember(context.supabase, data.orgId, context.userId);
-    const { listConnections, syncConnection, generateInsights } = await import(
-      "./services/social.server"
-    );
-    const now = Date.now();
-    const due = (await listConnections(data.orgId)).filter(
-      (c) => c.status !== "pending" && (!c.nextSyncAt || Date.parse(c.nextSyncAt) <= now),
-    );
-    const outcomes = [];
-    for (const connection of due) outcomes.push(await syncConnection(data.orgId, connection.id));
-    if (outcomes.length > 0) await generateInsights(data.orgId, 30);
-    return { synced: outcomes.length, outcomes };
-  });
 
-
-export const disconnectAccount = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    orgInput.extend({ connectionId: z.string().uuid(), deleteData: z.boolean() }).parse(input),
-  )
-  .handler(async ({ data, context }) => {
-    await assertMember(context.supabase, data.orgId, context.userId);
-    const { disconnectConnection } = await import("./services/social.server");
-    await disconnectConnection(data.orgId, data.connectionId, data.deleteData);
-    return { ok: true };
-  });
-
-export const purgeWorkspaceData = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((input: unknown) =>
-    orgInput.extend({ scope: z.enum(["analytics", "everything"]) }).parse(input),
-  )
-  .handler(async ({ data, context }) => {
-    await assertMember(context.supabase, data.orgId, context.userId);
-    const { deleteWorkspaceAnalytics, deleteEverything } = await import("./services/social.server");
-    if (data.scope === "everything") await deleteEverything(data.orgId);
-    else await deleteWorkspaceAnalytics(data.orgId);
-    return { ok: true };
-  });
+const orgInput = z.object({ orgId: z.string().uuid() });
 
 export const getNotifications = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -167,10 +18,10 @@ export const getNotifications = createServerFn({ method: "POST" })
     await assertMember(context.supabase, data.orgId, context.userId);
     const { data: rows, error } = await context.supabase
       .from("notifications")
-      .select("id, kind, title, body, severity, read_at, created_at")
+      .select("id, title, body, created_at, read_at")
       .eq("org_id", data.orgId)
       .order("created_at", { ascending: false })
-      .limit(30);
+      .limit(20);
     if (error) throw new Error(error.message);
     return { notifications: rows ?? [] };
   });
@@ -180,33 +31,71 @@ export const markNotificationsRead = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => orgInput.parse(input))
   .handler(async ({ data, context }) => {
     await assertMember(context.supabase, data.orgId, context.userId);
-    await context.supabase
+    const { error } = await context.supabase
       .from("notifications")
-      .update({ read_at: new Date().toISOString() })
+      .update({ read_at: new Date().toISOString() } as never)
       .eq("org_id", data.orgId)
       .is("read_at", null);
-    return { ok: true };
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
   });
 
-export const getInsightRecords = createServerFn({ method: "POST" })
+/** Privacy control: removes every tracked handle and stored snapshot. */
+export const purgeWorkspaceData = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => orgInput.parse(input))
   .handler(async ({ data, context }) => {
     await assertMember(context.supabase, data.orgId, context.userId);
-    const { listInsights } = await import("./services/social.server");
-    return { insights: await listInsights(data.orgId) };
+    const { error } = await context.supabase
+      .from("public_accounts")
+      .delete()
+      .eq("org_id", data.orgId);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
   });
 
+/** Operator diagnostics. Owners and admins only; never surfaced to members. */
 export const getSetupStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => orgInput.parse(input))
   .handler(async ({ data, context }) => {
     const role = await assertMember(context.supabase, data.orgId, context.userId);
-    if (!["owner", "admin"].includes(role)) {
-      throw new Error("You don't have access to this page.");
-    }
-    const { setupStatus } = await import("./services/social.server");
-    return setupStatus(data.orgId);
+    if (!["owner", "admin"].includes(role)) throw new Error("Not available for this account.");
+
+    const { allIntegrationStatuses } = await import("./social/oauth/config.server");
+    const { PLATFORMS } = await import("./social/platforms");
+    const integrations = allIntegrationStatuses().map((status) => ({
+      platform: status.platform,
+      name: PLATFORMS[status.platform].name,
+      configured: status.configured,
+      missing: status.missing,
+    }));
+
+    const { data: accounts, error } = await context.supabase
+      .from("public_accounts")
+      .select("id, last_checked_at")
+      .eq("org_id", data.orgId);
+
+    const now = Date.now();
+    const staleAfter = 12 * 60 * 60 * 1000;
+    const due = (accounts ?? []).filter(
+      (a) => !a.last_checked_at || now - Date.parse(a.last_checked_at) > staleAfter,
+    ).length;
+    const next = (accounts ?? [])
+      .map((a) => (a.last_checked_at ? Date.parse(a.last_checked_at) + staleAfter : now))
+      .sort((a, b) => a - b)[0];
+
+    return {
+      integrations,
+      configuredCount: integrations.filter((i) => i.configured).length,
+      database: !error,
+      connections: accounts?.length ?? 0,
+      backgroundSync: {
+        enabled: (accounts?.length ?? 0) > 0,
+        due,
+        nextSyncAt: next ? new Date(next).toISOString() : null,
+      },
+    };
   });
 
 const preferencesSchema = z.object({
@@ -247,5 +136,5 @@ export const savePreferences = createServerFn({ method: "POST" })
       .from("user_preferences")
       .upsert(payload as never, { onConflict: "user_id" });
     if (error) throw new Error(error.message);
-    return { ok: true };
+    return { ok: true as const };
   });
