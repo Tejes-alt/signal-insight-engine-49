@@ -64,6 +64,7 @@ function SidebarNav({
   onNavigate?: (() => void) | undefined;
   items?: readonly { to: string; label: string; icon: typeof Settings }[];
 }) {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   return (
     <nav className="flex flex-col gap-1">
       {items.map(({ to, label, icon: Icon }) => {
