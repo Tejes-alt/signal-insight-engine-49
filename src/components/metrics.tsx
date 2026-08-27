@@ -100,7 +100,7 @@ export function MetricValue({
   className,
 }: {
   metric: Metric;
-  suffix?: string;
+  suffix?: string | undefined;
   animate?: boolean;
   className?: string;
 }) {

@@ -8,16 +8,16 @@ export const Route = createFileRoute("/auth")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Access terminal — SENTINEX" },
+      { title: "Sign in · Pulse Social Analytics" },
       {
         name: "description",
         content:
-          "Sign in to SENTINEX to monitor official social platform APIs, sentiment, topics and anomalies in one evidence-backed console.",
+          "Sign in to Pulse to see your followers, reach, engagement and top content across every social platform.",
       },
-      { property: "og:title", content: "Access terminal — SENTINEX" },
+      { property: "og:title", content: "Sign in · Pulse Social Analytics" },
       {
         property: "og:description",
-        content: "Sign in to the SENTINEX social intelligence console.",
+        content: "Your social media analytics, unified in one dashboard.",
       },
     ],
   }),
@@ -33,7 +33,7 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/command", replace: true });
+      if (data.session) navigate({ to: "/dashboard", replace: true });
     });
   }, [navigate]);
 
@@ -45,7 +45,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/command` },
+          options: { emailRedirectTo: `${window.location.origin}/dashboard` },
         });
         if (error) throw error;
         toast.success("Account created. Establishing session…");
@@ -54,7 +54,7 @@ function AuthPage() {
         if (error) throw error;
       }
       const { data } = await supabase.auth.getSession();
-      if (data.session) navigate({ to: "/command", replace: true });
+      if (data.session) navigate({ to: "/dashboard", replace: true });
       else toast.info("Check your inbox to confirm your address.");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Authentication failed.");
@@ -74,20 +74,20 @@ function AuthPage() {
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/command", replace: true });
+    navigate({ to: "/dashboard", replace: true });
   }
 
   return (
-    <div className="grid-lines flex min-h-screen items-center justify-center px-4">
-      <div className="panel w-full max-w-md p-8">
+    <div className="aurora flex min-h-screen items-center justify-center px-4 py-10">
+      <div className="panel gradient-border animate-rise w-full max-w-md p-8">
         <Link to="/" className="label-mono text-muted-foreground hover:text-foreground">
-          ← SENTINEX
+          ← Back to Pulse
         </Link>
         <h1 className="mt-6 font-display text-2xl font-semibold text-foreground">
-          {mode === "signin" ? "Access terminal" : "Provision operator"}
+          {mode === "signin" ? "Welcome back" : "Create your account"}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Authenticate to open your intelligence workspace.
+          Sign in to open your analytics dashboard. We never ask for your social media passwords.
         </p>
 
         <button
@@ -115,7 +115,7 @@ function AuthPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-ring"
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
             />
           </div>
           <div>
@@ -129,7 +129,7 @@ function AuthPage() {
               minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-ring"
+              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
             />
           </div>
           <button
@@ -145,7 +145,7 @@ function AuthPage() {
           onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
           className="label-mono mt-5 w-full text-muted-foreground hover:text-foreground"
         >
-          {mode === "signin" ? "No account? Provision one" : "Already provisioned? Sign in"}
+          {mode === "signin" ? "No account? Create one" : "Already have an account? Sign in"}
         </button>
       </div>
     </div>

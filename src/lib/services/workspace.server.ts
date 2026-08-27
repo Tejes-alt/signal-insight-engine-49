@@ -71,23 +71,27 @@ export async function ensureWorkspace(
   const slug = `${base}-${Math.random().toString(36).slice(2, 7)}`;
   const name = `${email?.split("@")[0] ?? "Personal"} workspace`;
 
-  const { data: org, error } = await supabase
-    .from("organizations")
-    .insert({ name, slug, owner_id: userId })
-    .select("id, name, slug, retention_days, is_demo")
+  // Creating the org and its owner membership is a chicken-and-egg problem for
+  // RLS (the membership must exist before the org is readable), so it runs in a
+  // security-definer function that scopes everything to auth.uid().
+  const { data, error } = await supabase
+    .rpc("ensure_personal_workspace", { _name: name, _slug: slug })
     .single();
   if (error) throw new Error(error.message);
-
-  const { error: memberError } = await supabase
-    .from("memberships")
-    .insert({ org_id: org.id, user_id: userId, role: "owner" });
-  if (memberError) throw new Error(memberError.message);
+  const org = data as {
+    id: string;
+    name: string;
+    slug: string;
+    retention_days: number;
+    is_demo: boolean;
+    role: string;
+  };
 
   return {
     id: org.id,
     name: org.name,
     slug: org.slug,
-    role: "owner",
+    role: org.role,
     retentionDays: org.retention_days,
     isDemo: org.is_demo,
   };

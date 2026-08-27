@@ -932,6 +932,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ensure_personal_workspace: {
+        Args: { _name: string; _slug: string }
+        Returns: {
+          id: string
+          is_demo: boolean
+          name: string
+          retention_days: number
+          role: Database["public"]["Enums"]["app_role"]
+          slug: string
+        }[]
+      }
       has_org_role: {
         Args: {
           _org_id: string
