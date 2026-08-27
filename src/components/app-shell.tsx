@@ -92,27 +92,6 @@ function SidebarNav({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
   );
 }
 
-function DemoToggle() {
-  const { demo, setDemo, connectedCount } = useDashboard();
-  return (
-    <div className="panel flex items-start gap-3 p-3">
-      <FlaskConical className={cn("mt-0.5 size-4", demo ? "text-warning" : "text-muted-foreground")} />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-semibold">Demo mode</span>
-          <Switch checked={demo} onCheckedChange={setDemo} aria-label="Toggle demo mode" />
-        </div>
-        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          {demo
-            ? "Showing realistic sample data. Nothing here is from a real account."
-            : connectedCount > 0
-              ? `Live data from ${connectedCount} connected ${connectedCount === 1 ? "account" : "accounts"}.`
-              : "Live mode — connect an account to populate the dashboard."}
-        </p>
-      </div>
-    </div>
-  );
-}
 
 function RangePicker() {
   const { rangeDays, setRangeDays } = useDashboard();
