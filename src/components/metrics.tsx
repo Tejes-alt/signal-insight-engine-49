@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Info, TrendingDown, TrendingUp } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { Metric } from "@/lib/analytics/dashboard";
 
 /** Compact human formatting: 1_284_000 -> 1.28M */
 export function formatNumber(value: number, precision = 1): string {
@@ -93,26 +92,6 @@ export function Unavailable({ note }: { note?: string | undefined }) {
   );
 }
 
-export function MetricValue({
-  metric,
-  suffix,
-  animate = true,
-  className,
-}: {
-  metric: Metric;
-  suffix?: string | undefined;
-  animate?: boolean;
-  className?: string;
-}) {
-  if (metric.state === "unavailable" || metric.value === null) return <Unavailable note={metric.note} />;
-  return (
-    <span className={className}>
-      {animate ? <AnimatedNumber value={metric.value} /> : formatNumber(metric.value)}
-      {suffix}
-    </span>
-  );
-}
-
 export function DeltaPill({ value, label }: { value: number | null; label?: string }) {
   if (value === null) {
     return <span className="label-mono">no history yet</span>;
@@ -134,48 +113,6 @@ export function DeltaPill({ value, label }: { value: number | null; label?: stri
   );
 }
 
-export function StatCard({
-  label,
-  metric,
-  delta,
-  suffix,
-  icon,
-  accent,
-  footer,
-}: {
-  label: string;
-  metric: Metric;
-  delta?: number | null;
-  suffix?: string;
-  icon?: ReactNode;
-  accent?: string;
-  footer?: ReactNode;
-}) {
-  return (
-    <div className="panel panel-hover group relative overflow-hidden p-5">
-      <div
-        className="pointer-events-none absolute -right-12 -top-12 size-32 rounded-full opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-45"
-        style={{ background: accent ?? "var(--color-primary)" }}
-      />
-      <div className="flex items-start justify-between gap-3">
-        <span className="label-mono">{label}</span>
-        {icon ? (
-          <span className="grid size-8 place-items-center rounded-lg bg-secondary/70 text-muted-foreground transition-colors group-hover:text-foreground">
-            {icon}
-          </span>
-        ) : null}
-      </div>
-      <div className="mt-3 font-display text-3xl font-semibold tracking-tight">
-        <MetricValue metric={metric} suffix={suffix} />
-      </div>
-      <div className="mt-3 flex items-center gap-2">
-        {delta !== undefined ? <DeltaPill value={delta} label="30d" /> : null}
-        {footer}
-      </div>
-    </div>
-  );
-}
-
 export function SkeletonCard({ lines = 3 }: { lines?: number }) {
   return (
     <div className="panel p-5">
@@ -187,28 +124,6 @@ export function SkeletonCard({ lines = 3 }: { lines?: number }) {
         ))}
       </div>
     </div>
-  );
-}
-
-export function DemoBadge({ className }: { className?: string }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span
-          className={cn(
-            "label-mono inline-flex cursor-help items-center gap-1.5 rounded-full border border-warning/40 bg-warning/12 px-2.5 py-1 text-warning",
-            className,
-          )}
-        >
-          <span className="size-1.5 rounded-full bg-warning" />
-          Demo data
-        </span>
-      </TooltipTrigger>
-      <TooltipContent className="max-w-xs">
-        Realistic sample figures for evaluating the interface. Nothing here comes from a real account —
-        connect a platform to replace it with live data.
-      </TooltipContent>
-    </Tooltip>
   );
 }
 
