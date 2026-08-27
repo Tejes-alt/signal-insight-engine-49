@@ -170,7 +170,7 @@ export async function listConnections(orgId: string): Promise<ConnectionRow[]> {
   if (error) throw new Error(error.message);
 
   return (data ?? []).map((row) => {
-    const metricRows = (row as { social_metrics?: { metrics: unknown }[] }).social_metrics ?? [];
+    const metricRows = (row as unknown as { social_metrics?: { metrics: unknown }[] }).social_metrics ?? [];
     const metrics = (metricRows[0]?.metrics ?? {}) as StoredMetrics;
     return {
       id: row.id as string,
@@ -250,7 +250,7 @@ export async function refreshConnectionStatuses(orgId: string): Promise<Connecti
       metadata: account.metadata,
     };
     if (match) {
-      await supabaseAdmin.from("social_connections").update(payload).eq("id", match.id);
+      await supabaseAdmin.from("social_connections").update(payload as never).eq("id", match.id);
     }
   }
 
@@ -722,7 +722,7 @@ export async function buildRealBundle(orgId: string, rangeDays: number): Promise
   });
 
   const content: ContentItem[] = (postRows ?? []).map((row) => {
-    const metricRows = (row as { post_metrics?: { metrics: unknown }[] }).post_metrics ?? [];
+    const metricRows = (row as unknown as { post_metrics?: { metrics: unknown }[] }).post_metrics ?? [];
     const metrics = (metricRows[0]?.metrics ?? {}) as StoredMetrics;
     const platform = row.platform as string;
     return {
@@ -894,7 +894,7 @@ export async function generateInsights(orgId: string, windowDays: number): Promi
 
   await supabaseAdmin.from("insights").delete().eq("org_id", orgId);
   if (rows.length > 0) {
-    await supabaseAdmin.from("insights").insert(rows);
+    await supabaseAdmin.from("insights").insert(rows as never);
     await notify(orgId, "insight_available", "New insights are ready", null, "info", {});
   }
   return listInsights(orgId);

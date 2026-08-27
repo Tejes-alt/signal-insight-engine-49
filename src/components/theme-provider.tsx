@@ -5,9 +5,10 @@ type Theme = "dark" | "light";
 interface ThemeContextValue {
   theme: Theme;
   toggle: () => void;
+  setTheme: (theme: Theme) => void;
 }
 
-const ThemeContext = createContext<ThemeContextValue>({ theme: "dark", toggle: () => {} });
+const ThemeContext = createContext<ThemeContextValue>({ theme: "dark", toggle: () => {}, setTheme: () => {} });
 
 const STORAGE_KEY = "pulse.theme";
 

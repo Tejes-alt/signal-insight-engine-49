@@ -112,7 +112,7 @@ async function request<T = JsonValue>(path: string, options: RequestOptions = {}
     response = await fetch(url, {
       method: options.method ?? "GET",
       headers,
-      body: options.body ? JSON.stringify(options.body) : undefined,
+      ...(options.body ? { body: JSON.stringify(options.body) } : {}),
     });
   } catch {
     throw new ProviderRequestError("The social provider could not be reached.", 503, "provider_unreachable");

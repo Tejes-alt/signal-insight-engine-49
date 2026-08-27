@@ -202,7 +202,7 @@ export const savePreferences = createServerFn({ method: "POST" })
     if (data.goal !== undefined) payload["goal"] = data.goal;
     const { error } = await context.supabase
       .from("user_preferences")
-      .upsert(payload, { onConflict: "user_id" });
+      .upsert(payload as never, { onConflict: "user_id" });
     if (error) throw new Error(error.message);
     return { ok: true };
   });
