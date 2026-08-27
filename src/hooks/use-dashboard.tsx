@@ -74,6 +74,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const dashboardFn = useServerFn(getDashboard);
   const socialFn = useServerFn(getSocialState);
   const syncFn = useServerFn(syncAllAccounts);
+  const staleFn = useServerFn(syncStaleAccounts);
+
   const queryClient = useQueryClient();
 
   const [demo, setDemoState] = useState(true);
@@ -122,6 +124,28 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     if (live.length > 0 && demo && window.localStorage.getItem(DEMO_KEY) === null) setDemo(false);
   }, [live.length, demo, hydrated, setDemo]);
+
+  // Automatic refresh: accounts whose scheduled refresh has elapsed are synced
+  // in the background. Fresh accounts are left alone, so quota is never wasted.
+  const [autoSyncDone, setAutoSyncDone] = useState(false);
+  useEffect(() => {
+    if (!orgId || autoSyncDone || live.length === 0) return;
+    const due = live.some((c) => !c.nextSyncAt || Date.parse(c.nextSyncAt) <= Date.now());
+    if (!due) return;
+    setAutoSyncDone(true);
+    void (async () => {
+      try {
+        const { synced } = await staleFn({ data: { orgId } });
+        if (synced > 0) {
+          await queryClient.invalidateQueries({ queryKey: ["social", orgId] });
+          await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+        }
+      } catch {
+        // Silent: the last known good data stays on screen.
+      }
+    })();
+  }, [orgId, autoSyncDone, live, staleFn, queryClient]);
+
 
   const dashboardQuery = useQuery({
     queryKey: ["dashboard", orgId, rangeDays, demo],
