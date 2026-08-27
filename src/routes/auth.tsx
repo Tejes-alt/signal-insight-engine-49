@@ -30,7 +30,8 @@ export const Route = createFileRoute("/auth")({
 type Mode = "signin" | "signup" | "forgot";
 
 const FIELD =
-  "mt-1 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors focus:border-ring";
+  "mt-1.5 w-full rounded-md border border-input bg-transparent px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-faint focus:border-primary/70";
+
 
 function AuthPage() {
   const navigate = useNavigate();
