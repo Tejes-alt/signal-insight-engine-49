@@ -1,25 +1,7 @@
-import { useState, type ReactNode } from "react";
+import { useState, type ElementType, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
-import {
-  BarChart3,
-  Bell,
-  LayoutDashboard,
-  Link2,
-  LogOut,
-  Menu,
-  Moon,
-  Play,
-  RefreshCw,
-  Search,
-  Settings,
-  Sparkles,
-  UserRound,
-  Upload,
-  Sun,
-  X,
-} from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { LogOut, Menu, Moon, Search, Settings, Sun, UserRound, X } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { getNotifications, markNotificationsRead } from "@/lib/social.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,15 +11,29 @@ import { useTheme } from "@/components/theme-provider";
 import { RANGES } from "@/hooks/use-dashboard";
 import { useDashboard } from "@/hooks/dashboard-context";
 import { CommandPalette, useCommandPalette } from "@/components/command-palette";
+import { SocialPulseLogo } from "@/components/brand";
+import { SignalScan, usePointerField } from "@/components/signal";
+import {
+  IconAccounts,
+  IconContent,
+  IconGrowth,
+  IconImport,
+  IconInsight,
+  IconOverview,
+  IconSignal,
+} from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { to: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { to: "/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/content", label: "Content", icon: Play },
-  { to: "/insights", label: "Insights", icon: Sparkles },
-  { to: "/accounts", label: "Accounts", icon: Link2 },
-  { to: "/import", label: "Import Center", icon: Upload },
+  { to: "/dashboard", label: "Overview", icon: IconOverview },
+  { to: "/analytics", label: "Analytics", icon: IconGrowth },
+  { to: "/content", label: "Content", icon: IconContent },
+  { to: "/insights", label: "Insights", icon: IconInsight },
+] as const;
+
+const NAV_SOURCES = [
+  { to: "/accounts", label: "Accounts", icon: IconAccounts },
+  { to: "/import", label: "Import Center", icon: IconImport },
 ] as const;
 
 const NAV_FOOTER = [
@@ -45,76 +41,74 @@ const NAV_FOOTER = [
   { to: "/profile", label: "Profile", icon: UserRound },
 ] as const;
 
+/** Kept as a named export for existing imports; now the real lockup. */
 export function Logo({ compact = false }: { compact?: boolean }) {
-  return (
-    <span className="flex items-center gap-2.5">
-      <span className="relative grid size-9 place-items-center rounded-xl" style={{ background: "var(--gradient-brand)" }}>
-        <span className="font-display text-sm font-bold text-background">S</span>
-        <span className="pointer-events-none absolute inset-0 rounded-xl border border-primary/40 halo-ring" aria-hidden />
-      </span>
-      {!compact ? (
-        <span className="flex flex-col leading-none">
-          <span className="font-display text-[0.66rem] font-semibold tracking-[0.34em] text-muted-foreground">SOCIAL</span>
-          <span className="gradient-text font-display text-lg font-bold tracking-[0.14em]">PULSE</span>
-        </span>
-      ) : null}
-    </span>
-  );
+  return <SocialPulseLogo compact={compact} />;
 }
 
-function SidebarNav({
+function NavGroup({
+  title,
+  items,
   onNavigate,
-  items = NAV,
 }: {
+  title?: string;
+  items: readonly { to: string; label: string; icon: ElementType }[];
+
+
   onNavigate?: (() => void) | undefined;
-  items?: readonly { to: string; label: string; icon: typeof Settings }[];
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   return (
-    <nav className="flex flex-col gap-1">
-      {items.map(({ to, label, icon: Icon }) => {
-        const active = pathname === to;
-        return (
-          <Link
-            key={to}
-            to={to}
-            onClick={onNavigate}
-            className={cn(
-              "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
-              active
-                ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[var(--shadow-soft)]"
-                : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground",
-            )}
-          >
-            {active ? (
-              <span
-                className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full"
-                style={{ background: "var(--gradient-brand)" }}
-              />
-            ) : null}
-            <Icon className={cn("size-4 transition-transform duration-200 group-hover:scale-110", active && "text-primary")} />
-            {label}
-          </Link>
-        );
-      })}
-    </nav>
+    <div>
+      {title ? <p className="label-faint px-3 pb-2">{title}</p> : null}
+      <nav className="flex flex-col">
+        {items.map(({ to, label, icon: Icon }) => {
+          const active = pathname === to;
+          return (
+            <Link
+              key={to}
+              to={to}
+              onClick={onNavigate}
+              className={cn(
+                "group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors duration-150",
+                active
+                  ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                  : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground",
+              )}
+            >
+              {active ? (
+                <span className="absolute -left-4 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-r bg-primary" />
+              ) : null}
+              <Icon size={16} className={active ? "text-primary" : undefined} />
+              {label}
+            </Link>
+          );
+        })}
+      </nav>
+    </div>
   );
 }
 
-
 function RangePicker() {
   const { rangeDays, setRangeDays } = useDashboard();
+  const activeIndex = RANGES.findIndex((r) => r.days === rangeDays);
   return (
-    <div className="flex items-center rounded-xl border border-border bg-secondary/50 p-1">
+    <div className="relative hidden items-center rounded-md border border-border p-[3px] sm:flex">
+      <span
+        className="absolute bottom-[3px] top-[3px] rounded-[4px] bg-secondary transition-[left] duration-200"
+        style={{
+          width: `calc((100% - 6px) / ${RANGES.length})`,
+          left: `calc(3px + (100% - 6px) / ${RANGES.length} * ${Math.max(0, activeIndex)})`,
+        }}
+        aria-hidden
+      />
       {RANGES.map((r) => (
         <button
           key={r.days}
           onClick={() => setRangeDays(r.days)}
           className={cn(
-            "rounded-lg px-2.5 py-1 text-xs font-semibold transition-all duration-200",
-            rangeDays === r.days
-              ? "bg-background text-foreground shadow-[var(--shadow-soft)]"
-              : "text-muted-foreground hover:text-foreground",
+            "relative z-10 min-w-9 px-2 py-1 font-mono text-[0.68rem] uppercase tracking-[0.1em] transition-colors",
+            rangeDays === r.days ? "text-foreground" : "text-faint hover:text-muted-foreground",
           )}
         >
           {r.label}
@@ -127,47 +121,36 @@ function RangePicker() {
 function relativeTime(iso: string | null): string {
   if (!iso) return "never";
   const seconds = Math.max(1, Math.round((Date.now() - Date.parse(iso)) / 1000));
-  if (seconds < 60) return `${seconds} seconds ago`;
+  if (seconds < 60) return `${seconds}s ago`;
   const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  if (hours < 24) return `${hours}h ago`;
   return new Date(iso).toLocaleDateString();
 }
 
-/** Honest status: we only ever claim "last checked", never real-time. */
+/** Honest status: we only ever claim "last reading", never real-time. */
 function SyncStatus() {
   const { accounts, lastCheckedAt, refreshing, refreshAll } = useDashboard();
-
+  if (refreshing) return <SignalScan label="Reading" className="hidden md:flex" />;
   return (
-    <div className="hidden items-center gap-2 md:flex">
-      <span
-        className={cn(
-          "flex items-center gap-1.5 rounded-xl border border-border bg-secondary/50 px-2.5 py-1 text-xs font-semibold",
-          refreshing ? "text-primary" : "text-muted-foreground",
-        )}
-      >
-        {refreshing ? (
-          <>
-            <RefreshCw className="size-3 animate-spin" /> Checking…
-          </>
-        ) : accounts.length === 0 ? (
-          "No accounts yet"
-        ) : (
-          `Last checked ${relativeTime(lastCheckedAt)}`
-        )}
+    <div className="hidden items-center gap-3 md:flex">
+      <span className="label-faint">
+        {accounts.length === 0 ? "no sources" : `read ${relativeTime(lastCheckedAt)}`}
       </span>
       {accounts.length > 0 ? (
-        <Button size="sm" variant="secondary" disabled={refreshing} onClick={() => void refreshAll()}>
-          <RefreshCw className={cn("mr-1.5 size-3.5", refreshing && "animate-spin")} />
-          Refresh all
-        </Button>
+        <button
+          onClick={() => void refreshAll()}
+          className="press font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-primary"
+        >
+          Refresh
+        </button>
       ) : null}
     </div>
   );
 }
 
-function NotificationBell() {
+function SignalInbox() {
   const { orgId } = useDashboard();
   const listFn = useServerFn(getNotifications);
   const readFn = useServerFn(markNotificationsRead);
@@ -183,33 +166,31 @@ function NotificationBell() {
 
   return (
     <div className="relative">
-      <Button
-        variant="ghost"
-        size="icon"
-        aria-label="Notifications"
+      <button
+        aria-label="Signals"
+        className="press relative grid size-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         onClick={() => {
           setOpen((v) => !v);
           if (!open && unread > 0 && orgId) void readFn({ data: { orgId } }).then(() => query.refetch());
         }}
       >
-        <Bell className="size-4" />
+        <IconSignal size={16} />
         {unread > 0 ? (
-          <span className="absolute right-1.5 top-1.5 grid size-4 place-items-center rounded-full bg-primary text-[0.6rem] font-bold text-background">
-            {unread > 9 ? "9+" : unread}
-          </span>
+          <span className="absolute right-1 top-1 size-1.5 rounded-full bg-primary" />
         ) : null}
-      </Button>
+      </button>
       {open ? (
-        <div className="glass animate-rise absolute right-0 top-11 z-50 w-80 rounded-2xl p-2">
+        <div className="overlay-surface animate-rise absolute right-0 top-10 z-50 w-80 p-1">
+          <p className="label-faint px-3 py-2">Signals</p>
           {items.length === 0 ? (
-            <p className="p-4 text-sm text-muted-foreground">No notifications yet.</p>
+            <p className="px-3 pb-3 text-sm text-muted-foreground">Nothing detected yet.</p>
           ) : (
             <ul className="max-h-80 overflow-y-auto">
               {items.map((n) => (
-                <li key={n.id} className="rounded-xl px-3 py-2 hover:bg-secondary/50">
+                <li key={n.id} className="rounded-md px-3 py-2 hover:bg-secondary/60">
                   <p className="text-sm font-medium">{n.title}</p>
                   {n.body ? <p className="text-xs text-muted-foreground">{n.body}</p> : null}
-                  <p className="text-[0.7rem] text-muted-foreground">{relativeTime(n.created_at)}</p>
+                  <p className="label-faint mt-1">{relativeTime(n.created_at)}</p>
                 </li>
               ))}
             </ul>
@@ -222,7 +203,7 @@ function NotificationBell() {
 
 function TopBar({ onOpenMenu, onOpenCommand }: { onOpenMenu: () => void; onOpenCommand: () => void }) {
   const { theme, toggle } = useTheme();
-  const { refetch, isLoading, email } = useDashboard();
+  const { email } = useDashboard();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -234,69 +215,79 @@ function TopBar({ onOpenMenu, onOpenCommand }: { onOpenMenu: () => void; onOpenC
   }
 
   return (
-    <header className="glass sticky top-0 z-30 flex h-16 items-center gap-3 border-x-0 border-t-0 px-4 md:px-7">
-      <Button variant="ghost" size="icon" className="lg:hidden" onClick={onOpenMenu} aria-label="Open navigation">
+    <header className="glass sticky top-0 z-30 flex h-[3.25rem] items-center gap-3 border-x-0 border-t-0 px-4 py-2.5 md:px-8">
+      <button
+        className="press grid size-8 place-items-center rounded-md text-muted-foreground lg:hidden"
+        onClick={onOpenMenu}
+        aria-label="Open navigation"
+      >
         <Menu className="size-5" />
-      </Button>
+      </button>
       <div className="lg:hidden">
-        <Logo compact />
+        <SocialPulseLogo compact size={22} />
       </div>
-      <div className="ml-auto flex items-center gap-2">
-        <button
-          onClick={onOpenCommand}
-          className="press hidden items-center gap-2 rounded-xl border border-border bg-secondary/40 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground md:flex"
-          aria-label="Open command palette"
-        >
-          <Search className="size-3.5" />
-          Search SocialPulse
-          <span className="kbd ml-2">⌘K</span>
-        </button>
+
+      <button
+        onClick={onOpenCommand}
+        className="press ml-1 hidden w-64 items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-xs text-faint transition-colors hover:border-border-strong hover:text-muted-foreground lg:flex"
+        aria-label="Open command palette"
+      >
+        <Search className="size-3.5" />
+        Search
+        <span className="kbd ml-auto">⌘K</span>
+      </button>
+
+      <div className="ml-auto flex items-center gap-3">
         <SyncStatus />
         <RangePicker />
-        <NotificationBell />
+        <SignalInbox />
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={refetch} aria-label="Refresh data">
-              <RefreshCw className={cn("size-4", isLoading && "animate-spin")} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Refresh</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle theme">
+            <button
+              onClick={toggle}
+              aria-label="Toggle theme"
+              className="press grid size-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
               {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-            </Button>
+            </button>
           </TooltipTrigger>
-          <TooltipContent>{theme === "dark" ? "Light mode" : "Dark mode"}</TooltipContent>
+          <TooltipContent>{theme === "dark" ? "Light" : "Dark"}</TooltipContent>
         </Tooltip>
-        <div className="hidden items-center gap-2 rounded-xl border border-border bg-secondary/50 py-1 pl-3 pr-1 sm:flex">
-          <span className="max-w-[11rem] truncate text-xs text-muted-foreground">{email ?? "Signed in"}</span>
-          <Button variant="ghost" size="icon" className="size-7" onClick={signOut} aria-label="Sign out">
-            <LogOut className="size-3.5" />
-          </Button>
-        </div>
+        <span className="hidden max-w-[11rem] truncate font-mono text-[0.68rem] text-faint xl:block">
+          {email ?? "Signed in"}
+        </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={signOut}
+              aria-label="Sign out"
+              className="press grid size-8 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <LogOut className="size-3.5" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>Sign out</TooltipContent>
+        </Tooltip>
       </div>
     </header>
   );
 }
 
 function SidebarBody({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
+  const { accounts } = useDashboard();
   return (
-    <div className="flex h-full flex-col gap-6 p-4">
-      <Link to="/dashboard" className="px-2 pt-2" onClick={onNavigate}>
-        <Logo />
+    <div className="flex h-full flex-col gap-7 px-4 py-5">
+      <Link to="/dashboard" className="px-1" onClick={onNavigate}>
+        <SocialPulseLogo />
       </Link>
-      <SidebarNav onNavigate={onNavigate} />
-      <div className="mt-auto space-y-3">
-        <SidebarNav onNavigate={onNavigate} items={NAV_FOOTER} />
-        <div className="panel p-3">
-          <p className="text-sm font-semibold">Your numbers, your control</p>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            SocialPulse reads what your profiles share publicly, and you can add anything else by hand, from a file or
-            from a screenshot.
-          </p>
+      <NavGroup items={NAV} onNavigate={onNavigate} />
+      <NavGroup title="Sources" items={NAV_SOURCES} onNavigate={onNavigate} />
+      <div className="mt-auto space-y-5">
+        <div className="px-3">
+          <p className="label-faint">Tracked presences</p>
+          <p className="figure mt-1 text-2xl">{accounts.length}</p>
         </div>
+        <NavGroup items={NAV_FOOTER} onNavigate={onNavigate} />
       </div>
     </div>
   );
@@ -304,9 +295,10 @@ function SidebarBody({ onNavigate }: { onNavigate?: (() => void) | undefined }) 
 
 function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const items = [...NAV, NAV_SOURCES[0]] as const;
   return (
-    <nav className="glass fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-x-0 border-b-0 px-2 pb-[env(safe-area-inset-bottom)] pt-1 md:hidden">
-      {NAV.slice(0, 5).map(({ to, label, icon: Icon }) => {
+    <nav className="glass fixed inset-x-0 bottom-0 z-40 flex items-stretch border-x-0 border-b-0 pb-[env(safe-area-inset-bottom)] md:hidden">
+      {items.map(({ to, label, icon: Icon }) => {
         const active = pathname === to;
         return (
           <Link
@@ -314,11 +306,12 @@ function BottomNav() {
             to={to}
             aria-label={label}
             className={cn(
-              "flex min-h-11 flex-1 flex-col items-center gap-0.5 rounded-xl px-1 py-1.5 text-[0.6rem] font-medium transition-colors",
-              active ? "text-primary" : "text-muted-foreground",
+              "relative flex min-h-12 flex-1 flex-col items-center justify-center gap-1 font-mono text-[0.55rem] uppercase tracking-[0.1em] transition-colors",
+              active ? "text-primary" : "text-faint",
             )}
           >
-            <Icon className="size-4" />
+            {active ? <span className="absolute inset-x-4 top-0 h-[2px] rounded-b bg-primary" /> : null}
+            <Icon size={17} />
             {label}
           </Link>
         );
@@ -331,11 +324,12 @@ function ShellInner({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { open: commandOpen, setOpen: setCommandOpen } = useCommandPalette();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const fieldRef = usePointerField();
 
   return (
-    <div className="aurora grain min-h-screen">
+    <div ref={fieldRef} className="signal-wash grain min-h-screen">
       <div className="flex min-h-screen">
-        <aside className="hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar/70 backdrop-blur-xl lg:block">
+        <aside className="hidden w-60 shrink-0 border-r border-sidebar-border bg-sidebar lg:block">
           <div className="sticky top-0 h-screen">
             <SidebarBody />
           </div>
@@ -344,7 +338,7 @@ function ShellInner({ children }: { children: ReactNode }) {
         {menuOpen ? (
           <div className="fixed inset-0 z-50 lg:hidden">
             <button
-              className="animate-fade absolute inset-0 bg-background/70 backdrop-blur-sm"
+              className="animate-fade absolute inset-0 bg-background/80 backdrop-blur-sm"
               onClick={() => setMenuOpen(false)}
               aria-label="Close navigation"
             />
@@ -365,11 +359,12 @@ function ShellInner({ children }: { children: ReactNode }) {
 
         <div className="flex min-w-0 flex-1 flex-col">
           <TopBar onOpenMenu={() => setMenuOpen(true)} onOpenCommand={() => setCommandOpen(true)} />
-          <main className="mx-auto w-full max-w-[100rem] flex-1 px-4 pb-24 pt-6 md:px-7 md:pb-10 md:pt-8">
+          <main className="mx-auto w-full max-w-[104rem] flex-1 px-4 pb-24 pt-7 md:px-8 md:pb-16 md:pt-9">
             <div key={pathname} className="page-enter">
               {children}
             </div>
           </main>
+
         </div>
       </div>
       <BottomNav />
@@ -382,6 +377,23 @@ export function AppShell({ children }: { children: ReactNode }) {
   return <ShellInner>{children}</ShellInner>;
 }
 
+/**
+ * A composition band. `bleed` breaks the section out of the page gutter so a
+ * chart, divider or grid can run edge to edge — the main lever against the
+ * "everything is a floating card" look.
+ */
+export function Section({
+  children,
+  className,
+  bleed = false,
+}: {
+  children: ReactNode;
+  className?: string;
+  bleed?: boolean;
+}) {
+  return <section className={cn(bleed && "-mx-4 md:-mx-8", className)}>{children}</section>;
+}
+
 export function PageHeader({
   title,
   description,
@@ -392,12 +404,15 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="animate-rise mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight md:text-3xl">{title}</h1>
-        {description ? <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{description}</p> : null}
+    <Section bleed className="mb-8 border-b border-border px-4 pb-8 md:mb-10 md:px-8 md:pb-10">
+
+      <div className="flex flex-wrap items-end justify-between gap-5">
+        <div className="max-w-2xl">
+          <h1 className="font-display text-[1.75rem] font-semibold tracking-[-0.03em] md:text-[2.1rem]">{title}</h1>
+          {description ? <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p> : null}
+        </div>
+        {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
       </div>
-      {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
-    </div>
+    </Section>
   );
 }
