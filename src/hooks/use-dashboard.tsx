@@ -12,8 +12,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { getWorkspace } from "@/lib/workspace.functions";
 import { getDashboard } from "@/lib/dashboard.functions";
-import { getSocialState, syncAllAccounts } from "@/lib/social.functions";
+import { getSocialState, syncAllAccounts, syncStaleAccounts } from "@/lib/social.functions";
 import type { AnalyticsBundle } from "@/lib/analytics/dashboard";
+
 import { platformName } from "@/lib/social/platforms";
 
 export const RANGES = [
@@ -38,8 +39,10 @@ export interface SocialConnectionView {
   syncStatus: string;
   syncError: string | null;
   lastSyncedAt: string | null;
+  nextSyncAt: string | null;
   metrics: Record<string, { value: number | null; status: string; reason?: string }>;
 }
+
 
 interface DashboardContextValue {
   orgId: string | null;
@@ -56,11 +59,13 @@ interface DashboardContextValue {
   connectedCount: number;
   providerConfigured: boolean;
   linkingConfigured: boolean;
+  integrationsReady: boolean;
   lastSyncedAt: string | null;
   syncing: boolean;
   syncAll: () => Promise<void>;
   refetch: () => void;
 }
+
 
 const DashboardContext = createContext<DashboardContextValue | null>(null);
 
@@ -69,6 +74,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const dashboardFn = useServerFn(getDashboard);
   const socialFn = useServerFn(getSocialState);
   const syncFn = useServerFn(syncAllAccounts);
+  const staleFn = useServerFn(syncStaleAccounts);
+
   const queryClient = useQueryClient();
 
   const [demo, setDemoState] = useState(true);
@@ -117,6 +124,28 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     if (live.length > 0 && demo && window.localStorage.getItem(DEMO_KEY) === null) setDemo(false);
   }, [live.length, demo, hydrated, setDemo]);
+
+  // Automatic refresh: accounts whose scheduled refresh has elapsed are synced
+  // in the background. Fresh accounts are left alone, so quota is never wasted.
+  const [autoSyncDone, setAutoSyncDone] = useState(false);
+  useEffect(() => {
+    if (!orgId || autoSyncDone || live.length === 0) return;
+    const due = live.some((c) => !c.nextSyncAt || Date.parse(c.nextSyncAt) <= Date.now());
+    if (!due) return;
+    setAutoSyncDone(true);
+    void (async () => {
+      try {
+        const { synced } = await staleFn({ data: { orgId } });
+        if (synced > 0) {
+          await queryClient.invalidateQueries({ queryKey: ["social", orgId] });
+          await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+        }
+      } catch {
+        // Silent: the last known good data stays on screen.
+      }
+    })();
+  }, [orgId, autoSyncDone, live, staleFn, queryClient]);
+
 
   const dashboardQuery = useQuery({
     queryKey: ["dashboard", orgId, rangeDays, demo],
@@ -171,6 +200,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       connectedCount: live.length,
       providerConfigured: socialQuery.data?.config?.apiKeyConfigured ?? false,
       linkingConfigured: socialQuery.data?.config?.linkingConfigured ?? false,
+      integrationsReady: workspaceQuery.data?.integrationsReady ?? false,
+
       lastSyncedAt,
       syncing,
       syncAll,

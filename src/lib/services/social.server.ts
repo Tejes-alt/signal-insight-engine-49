@@ -66,8 +66,10 @@ export interface ConnectionRow {
   syncStartedAt: string | null;
   syncCompletedAt: string | null;
   createdAt: string;
+  nextSyncAt: string | null;
   metrics: StoredMetrics;
 }
+
 
 /* ------------------------------------------------------------------ */
 /* Provider profile (one isolated profile per workspace)               */
@@ -186,7 +188,9 @@ export async function listConnections(orgId: string): Promise<ConnectionRow[]> {
       syncStartedAt: row.sync_started_at as string | null,
       syncCompletedAt: row.sync_completed_at as string | null,
       createdAt: row.created_at as string,
+      nextSyncAt: (row as { next_sync_at?: string | null }).next_sync_at ?? null,
       metrics,
+
     };
   });
 }
@@ -516,6 +520,8 @@ export async function syncConnection(orgId: string, connectionId: string): Promi
         sync_completed_at: completedAt,
         last_synced_at: completedAt,
         sync_error: null,
+        sync_attempts: 0,
+        next_sync_at: new Date(Date.now() + DEFAULT_SYNC_INTERVAL_MINUTES * 60_000).toISOString(),
       })
       .eq("id", connectionId);
 
@@ -528,10 +534,14 @@ export async function syncConnection(orgId: string, connectionId: string): Promi
         : rawError instanceof Error
           ? rawError.message
           : "The synchronization failed.";
-    const status: ConnectionStatus =
-      rawError instanceof ProviderRequestError && rawError.code === "not_authorized"
-        ? "permission_error"
-        : "unavailable";
+    const notAuthorized = rawError instanceof ProviderRequestError && rawError.code === "not_authorized";
+    const rateLimited = rawError instanceof ProviderRequestError && rawError.code === "rate_limited";
+    const status: ConnectionStatus = notAuthorized ? "permission_error" : "unavailable";
+    // Exponential backoff so a failing account never hammers the provider.
+    const attempts = (await currentAttempts(connectionId)) + 1;
+    const backoffMinutes = notAuthorized
+      ? 24 * 60
+      : Math.min(6 * 60, (rateLimited ? 30 : 10) * 2 ** Math.min(attempts - 1, 4));
     await supabaseAdmin
       .from("social_connections")
       .update({
@@ -539,11 +549,25 @@ export async function syncConnection(orgId: string, connectionId: string): Promi
         status,
         sync_error: message,
         sync_completed_at: new Date().toISOString(),
+        sync_attempts: attempts,
+        next_sync_at: new Date(Date.now() + backoffMinutes * 60_000).toISOString(),
       })
       .eq("id", connectionId);
     await notify(orgId, "sync_failed", `${platformName(platform)} sync failed`, message, "error", { platform });
     return { platform, ok: false, error: message, postsStored: 0 };
   }
+}
+
+/** How often a healthy connection refreshes itself in the background. */
+export const DEFAULT_SYNC_INTERVAL_MINUTES = 180;
+
+async function currentAttempts(connectionId: string): Promise<number> {
+  const { data } = await supabaseAdmin
+    .from("social_connections")
+    .select("sync_attempts")
+    .eq("id", connectionId)
+    .maybeSingle();
+  return Number((data as { sync_attempts?: number } | null)?.sync_attempts ?? 0);
 }
 
 export async function syncAll(orgId: string): Promise<SyncOutcome[]> {
@@ -556,6 +580,47 @@ export async function syncAll(orgId: string): Promise<SyncOutcome[]> {
   if (outcomes.length > 0) await generateInsights(orgId, 30);
   return outcomes;
 }
+
+/**
+ * Background pass across every workspace: only connections whose `next_sync_at`
+ * has elapsed are refreshed, so provider quota is spent on stale data only.
+ */
+export async function syncDueConnections(limit = 25): Promise<{
+  scanned: number;
+  synced: number;
+  failed: number;
+}> {
+  if (!providerConfig().apiKeyConfigured) return { scanned: 0, synced: 0, failed: 0 };
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabaseAdmin
+    .from("social_connections")
+    .select("id, org_id, next_sync_at, status")
+    .neq("status", "pending")
+    .or(`next_sync_at.is.null,next_sync_at.lte.${nowIso}`)
+    .order("next_sync_at", { ascending: true, nullsFirst: true })
+    .limit(limit);
+  if (error) throw new Error(error.message);
+
+  const rows = (data ?? []) as { id: string; org_id: string }[];
+  let synced = 0;
+  let failed = 0;
+  const touchedOrgs = new Set<string>();
+  for (const row of rows) {
+    const outcome = await syncConnection(row.org_id, row.id);
+    touchedOrgs.add(row.org_id);
+    if (outcome.ok) synced += 1;
+    else failed += 1;
+  }
+  for (const orgId of touchedOrgs) {
+    try {
+      await generateInsights(orgId, 30);
+    } catch {
+      // Insight generation is derived data; a failure never fails the sweep.
+    }
+  }
+  return { scanned: rows.length, synced, failed };
+}
+
 
 /* ------------------------------------------------------------------ */
 /* Disconnect + deletion                                               */
@@ -909,6 +974,8 @@ export interface SetupStatus {
   database: boolean;
   profileCreated: boolean;
   connections: number;
+  backgroundSync: { enabled: boolean; due: number; nextSyncAt: string | null };
+  analyticsReady: boolean;
   recentSyncs: { platform: string; status: string; at: string | null; error: string | null }[];
 }
 
@@ -927,11 +994,26 @@ export async function setupStatus(orgId: string): Promise<SetupStatus> {
   } catch {
     database = false;
   }
+  const now = Date.now();
+  const schedule = connections
+    .filter((c) => c.status !== "pending")
+    .map((c) => c.nextSyncAt)
+    .filter((v): v is string => Boolean(v))
+    .sort();
   return {
     provider: config,
     database,
     profileCreated: Boolean(await loadProfile(orgId)),
     connections: connections.length,
+    backgroundSync: {
+      enabled: config.apiKeyConfigured,
+      due: connections.filter(
+        (c) => c.status !== "pending" && (!c.nextSyncAt || Date.parse(c.nextSyncAt) <= now),
+      ).length,
+      nextSyncAt: schedule[0] ?? null,
+    },
+    analyticsReady: connections.some((c) => c.lastSyncedAt !== null),
+
     recentSyncs: connections.map((c) => ({
       platform: c.platform,
       status: c.syncStatus,

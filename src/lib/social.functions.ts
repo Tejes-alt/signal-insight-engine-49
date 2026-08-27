@@ -109,6 +109,29 @@ export const syncAllAccounts = createServerFn({ method: "POST" })
     return { outcomes: await syncAll(data.orgId) };
   });
 
+/**
+ * Automatic refresh: syncs only the accounts whose scheduled refresh time has
+ * elapsed. Safe to call on dashboard load — cached data is left untouched.
+ */
+export const syncStaleAccounts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => orgInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await assertMember(context.supabase, data.orgId, context.userId);
+    const { listConnections, syncConnection, generateInsights } = await import(
+      "./services/social.server"
+    );
+    const now = Date.now();
+    const due = (await listConnections(data.orgId)).filter(
+      (c) => c.status !== "pending" && (!c.nextSyncAt || Date.parse(c.nextSyncAt) <= now),
+    );
+    const outcomes = [];
+    for (const connection of due) outcomes.push(await syncConnection(data.orgId, connection.id));
+    if (outcomes.length > 0) await generateInsights(data.orgId, 30);
+    return { synced: outcomes.length, outcomes };
+  });
+
+
 export const disconnectAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) =>
