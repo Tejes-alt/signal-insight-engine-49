@@ -14,16 +14,935 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      alert_events: {
+        Row: {
+          acknowledged: boolean
+          alert_id: string
+          evidence: Json
+          id: string
+          message: string
+          org_id: string
+          triggered_at: string
+          value: number
+        }
+        Insert: {
+          acknowledged?: boolean
+          alert_id: string
+          evidence?: Json
+          id?: string
+          message: string
+          org_id: string
+          triggered_at?: string
+          value: number
+        }
+        Update: {
+          acknowledged?: boolean
+          alert_id?: string
+          evidence?: Json
+          id?: string
+          message?: string
+          org_id?: string
+          triggered_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_events_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "alerts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "alert_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alerts: {
+        Row: {
+          channels: string[]
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          id: string
+          last_triggered_at: string | null
+          metric: string
+          name: string
+          operator: string
+          org_id: string
+          threshold: number
+          window_hours: number
+        }
+        Insert: {
+          channels?: string[]
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          last_triggered_at?: string | null
+          metric: string
+          name: string
+          operator: string
+          org_id: string
+          threshold: number
+          window_hours?: number
+        }
+        Update: {
+          channels?: string[]
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          last_triggered_at?: string | null
+          metric?: string
+          name?: string
+          operator?: string
+          org_id?: string
+          threshold?: number
+          window_hours?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alerts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      anomaly_events: {
+        Row: {
+          baseline: number | null
+          confidence: number
+          current_value: number | null
+          detected_at: string
+          deviation: number | null
+          evidence: Json
+          fingerprint: string
+          id: string
+          kind: string
+          metric: string
+          org_id: string
+          scope: Json
+          severity: string
+          status: string
+        }
+        Insert: {
+          baseline?: number | null
+          confidence?: number
+          current_value?: number | null
+          detected_at?: string
+          deviation?: number | null
+          evidence?: Json
+          fingerprint: string
+          id?: string
+          kind: string
+          metric: string
+          org_id: string
+          scope?: Json
+          severity: string
+          status?: string
+        }
+        Update: {
+          baseline?: number | null
+          confidence?: number
+          current_value?: number | null
+          detected_at?: string
+          deviation?: number | null
+          evidence?: Json
+          fingerprint?: string
+          id?: string
+          kind?: string
+          metric?: string
+          org_id?: string
+          scope?: Json
+          severity?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anomaly_events_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          details: Json
+          id: number
+          org_id: string | null
+          target: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: number
+          org_id?: string | null
+          target?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: number
+          org_id?: string | null
+          target?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      memberships: {
+        Row: {
+          created_at: string
+          id: string
+          org_id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          org_id: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          org_id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          id: string
+          is_demo: boolean
+          name: string
+          owner_id: string
+          retention_days: number
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_demo?: boolean
+          name: string
+          owner_id: string
+          retention_days?: number
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_demo?: boolean
+          name?: string
+          owner_id?: string
+          retention_days?: number
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      post_comments: {
+        Row: {
+          author_handle: string | null
+          author_name: string | null
+          id: string
+          ingested_at: string
+          likes: number | null
+          org_id: string
+          post_id: string
+          provider: string
+          provider_comment_id: string
+          published_at: string
+          text: string | null
+        }
+        Insert: {
+          author_handle?: string | null
+          author_name?: string | null
+          id?: string
+          ingested_at?: string
+          likes?: number | null
+          org_id: string
+          post_id: string
+          provider: string
+          provider_comment_id: string
+          published_at: string
+          text?: string | null
+        }
+        Update: {
+          author_handle?: string | null
+          author_name?: string | null
+          id?: string
+          ingested_at?: string
+          likes?: number | null
+          org_id?: string
+          post_id?: string
+          provider?: string
+          provider_comment_id?: string
+          published_at?: string
+          text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_metric_snapshots: {
+        Row: {
+          captured_at: string
+          comments_count: number | null
+          id: number
+          likes: number | null
+          org_id: string
+          post_id: string
+          shares: number | null
+          views: number | null
+        }
+        Insert: {
+          captured_at?: string
+          comments_count?: number | null
+          id?: number
+          likes?: number | null
+          org_id: string
+          post_id: string
+          shares?: number | null
+          views?: number | null
+        }
+        Update: {
+          captured_at?: string
+          comments_count?: number | null
+          id?: number
+          likes?: number | null
+          org_id?: string
+          post_id?: string
+          shares?: number | null
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_metric_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_metric_snapshots_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      posts: {
+        Row: {
+          author_handle: string | null
+          author_id: string | null
+          author_name: string | null
+          comments_count: number | null
+          hashtags: string[]
+          id: string
+          ingested_at: string
+          language: string | null
+          likes: number | null
+          location: string | null
+          media_type: string | null
+          mentions: string[]
+          metric_provenance: Json
+          org_id: string
+          permalink: string | null
+          provider: string
+          provider_account_id: string | null
+          provider_post_id: string
+          published_at: string
+          raw: Json | null
+          replies: number | null
+          shares: number | null
+          text: string | null
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string
+          views: number | null
+        }
+        Insert: {
+          author_handle?: string | null
+          author_id?: string | null
+          author_name?: string | null
+          comments_count?: number | null
+          hashtags?: string[]
+          id?: string
+          ingested_at?: string
+          language?: string | null
+          likes?: number | null
+          location?: string | null
+          media_type?: string | null
+          mentions?: string[]
+          metric_provenance?: Json
+          org_id: string
+          permalink?: string | null
+          provider: string
+          provider_account_id?: string | null
+          provider_post_id: string
+          published_at: string
+          raw?: Json | null
+          replies?: number | null
+          shares?: number | null
+          text?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+          views?: number | null
+        }
+        Update: {
+          author_handle?: string | null
+          author_id?: string | null
+          author_name?: string | null
+          comments_count?: number | null
+          hashtags?: string[]
+          id?: string
+          ingested_at?: string
+          language?: string | null
+          likes?: number | null
+          location?: string | null
+          media_type?: string | null
+          mentions?: string[]
+          metric_provenance?: Json
+          org_id?: string
+          permalink?: string | null
+          provider?: string
+          provider_account_id?: string | null
+          provider_post_id?: string
+          published_at?: string
+          raw?: Json | null
+          replies?: number | null
+          shares?: number | null
+          text?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "posts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "provider_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      provider_accounts: {
+        Row: {
+          avatar_url: string | null
+          connected_by: string | null
+          created_at: string
+          display_name: string | null
+          error_count: number
+          external_id: string
+          followers: number | null
+          handle: string | null
+          id: string
+          label: string | null
+          last_error: string | null
+          last_synced_at: string | null
+          metadata: Json
+          mode: string
+          next_sync_at: string | null
+          org_id: string
+          paused: boolean
+          provider: string
+          records_collected: number
+          status: string
+          sync_cursor: string | null
+          sync_status: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          connected_by?: string | null
+          created_at?: string
+          display_name?: string | null
+          error_count?: number
+          external_id: string
+          followers?: number | null
+          handle?: string | null
+          id?: string
+          label?: string | null
+          last_error?: string | null
+          last_synced_at?: string | null
+          metadata?: Json
+          mode?: string
+          next_sync_at?: string | null
+          org_id: string
+          paused?: boolean
+          provider: string
+          records_collected?: number
+          status?: string
+          sync_cursor?: string | null
+          sync_status?: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          connected_by?: string | null
+          created_at?: string
+          display_name?: string | null
+          error_count?: number
+          external_id?: string
+          followers?: number | null
+          handle?: string | null
+          id?: string
+          label?: string | null
+          last_error?: string | null
+          last_synced_at?: string | null
+          metadata?: Json
+          mode?: string
+          next_sync_at?: string | null
+          org_id?: string
+          paused?: boolean
+          provider?: string
+          records_collected?: number
+          status?: string
+          sync_cursor?: string | null
+          sync_status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_tokens: {
+        Row: {
+          access_token_ciphertext: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          provider_account_id: string
+          refresh_token_ciphertext: string | null
+          scopes: string[]
+          updated_at: string
+        }
+        Insert: {
+          access_token_ciphertext: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          provider_account_id: string
+          refresh_token_ciphertext?: string | null
+          scopes?: string[]
+          updated_at?: string
+        }
+        Update: {
+          access_token_ciphertext?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          provider_account_id?: string
+          refresh_token_ciphertext?: string | null
+          scopes?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_tokens_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: true
+            referencedRelation: "provider_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reports: {
+        Row: {
+          completed_at: string | null
+          content: Json | null
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          org_id: string
+          params: Json
+          status: string
+          title: string
+        }
+        Insert: {
+          completed_at?: string | null
+          content?: Json | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          org_id: string
+          params?: Json
+          status?: string
+          title: string
+        }
+        Update: {
+          completed_at?: string | null
+          content?: Json | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          org_id?: string
+          params?: Json
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sentiment_results: {
+        Row: {
+          confidence: number
+          created_at: string
+          id: string
+          label: string
+          method: string
+          org_id: string
+          score: number
+          subject_id: string
+          subject_type: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          id?: string
+          label: string
+          method?: string
+          org_id: string
+          score: number
+          subject_id: string
+          subject_type: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          id?: string
+          label?: string
+          method?: string
+          org_id?: string
+          score?: number
+          subject_id?: string
+          subject_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sentiment_results_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_jobs: {
+        Row: {
+          error: string | null
+          finished_at: string | null
+          id: string
+          kind: string
+          org_id: string
+          provider_account_id: string | null
+          records: number
+          started_at: string
+          status: string
+        }
+        Insert: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          kind: string
+          org_id: string
+          provider_account_id?: string | null
+          records?: number
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          kind?: string
+          org_id?: string
+          provider_account_id?: string | null
+          records?: number
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_jobs_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sync_jobs_provider_account_id_fkey"
+            columns: ["provider_account_id"]
+            isOneToOne: false
+            referencedRelation: "provider_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      topic_assignments: {
+        Row: {
+          id: number
+          org_id: string
+          post_id: string
+          topic_id: string
+          weight: number
+        }
+        Insert: {
+          id?: number
+          org_id: string
+          post_id: string
+          topic_id: string
+          weight?: number
+        }
+        Update: {
+          id?: number
+          org_id?: string
+          post_id?: string
+          topic_id?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topic_assignments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topic_assignments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topic_assignments_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      topics: {
+        Row: {
+          first_seen_at: string
+          id: string
+          keywords: string[]
+          label: string
+          last_seen_at: string
+          org_id: string
+        }
+        Insert: {
+          first_seen_at?: string
+          id?: string
+          keywords?: string[]
+          label: string
+          last_seen_at?: string
+          org_id: string
+        }
+        Update: {
+          first_seen_at?: string
+          id?: string
+          keywords?: string[]
+          label?: string
+          last_seen_at?: string
+          org_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topics_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trend_snapshots: {
+        Row: {
+          acceleration: number | null
+          baseline: number | null
+          computed_at: string
+          engagement: number | null
+          id: number
+          momentum: number | null
+          org_id: string
+          platform_breakdown: Json
+          sentiment_avg: number | null
+          topic_id: string | null
+          velocity: number | null
+          volume: number
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          acceleration?: number | null
+          baseline?: number | null
+          computed_at?: string
+          engagement?: number | null
+          id?: number
+          momentum?: number | null
+          org_id: string
+          platform_breakdown?: Json
+          sentiment_avg?: number | null
+          topic_id?: string | null
+          velocity?: number | null
+          volume?: number
+          window_end: string
+          window_start: string
+        }
+        Update: {
+          acceleration?: number | null
+          baseline?: number | null
+          computed_at?: string
+          engagement?: number | null
+          id?: number
+          momentum?: number | null
+          org_id?: string
+          platform_breakdown?: Json
+          sentiment_avg?: number | null
+          topic_id?: string | null
+          velocity?: number | null
+          volume?: number
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trend_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trend_snapshots_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_org_role: {
+        Args: {
+          _org_id: string
+          _roles: Database["public"]["Enums"]["app_role"][]
+        }
+        Returns: boolean
+      }
+      is_org_member: { Args: { _org_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "owner" | "admin" | "analyst" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +1069,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["owner", "admin", "analyst", "viewer"],
+    },
   },
 } as const
