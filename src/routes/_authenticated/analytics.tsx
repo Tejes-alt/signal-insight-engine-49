@@ -4,10 +4,10 @@ import { AppShell, PageHeader } from "@/components/app-shell";
 import { BalanceRadar, CompareBars, TrendArea, TrendLines } from "@/components/charts";
 import { DeltaPill, DemoBadge, EmptyState, MetricValue, SkeletonCard } from "@/components/metrics";
 import { PLATFORM_ACCENT, PlatformMark } from "@/components/platform";
-import { useDashboard, withDashboard } from "@/hooks/use-dashboard";
+import { useDashboard } from "@/hooks/dashboard-context";
 
 export const Route = createFileRoute("/_authenticated/analytics")({
-  component: withDashboard(AnalyticsPage),
+  component: AnalyticsPage,
   head: () => ({
     meta: [
       { title: "Analytics · SocialPulse" },

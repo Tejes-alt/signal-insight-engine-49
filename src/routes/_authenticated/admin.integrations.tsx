@@ -3,12 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, Loader2, Lock, XCircle } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/app-shell";
-import { useDashboard, withDashboard } from "@/hooks/use-dashboard";
+import { useDashboard } from "@/hooks/dashboard-context";
 import { getSetupStatus } from "@/lib/social.functions";
 import { platformName } from "@/lib/social/platforms";
 
 export const Route = createFileRoute("/_authenticated/admin/integrations")({
-  component: withDashboard(AdminIntegrationsPage),
+  component: AdminIntegrationsPage,
   head: () => ({
     meta: [
       { title: "Integration diagnostics · SocialPulse admin" },
