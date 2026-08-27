@@ -3,7 +3,7 @@ import { authenticateCronRequest } from "@/integrations/supabase/cron-auth";
 
 /**
  * Background synchronization sweep. Called on a schedule; refreshes only the
- * connections whose next_sync_at has elapsed, so provider quota is respected.
+ * public profiles that have not been checked recently.
  */
 export const Route = createFileRoute("/api/public/cron/sync")({
   server: {
@@ -11,9 +11,9 @@ export const Route = createFileRoute("/api/public/cron/sync")({
       POST: async ({ request }) => {
         const denied = await authenticateCronRequest(request);
         if (denied) return denied;
-        const { syncDueConnections } = await import("@/lib/services/social.server");
+        const { refreshStaleAccounts } = await import("@/lib/public/aggregator.server");
         try {
-          const result = await syncDueConnections(25);
+          const result = await refreshStaleAccounts(25);
           console.info(`[cron] sync sweep`, result);
           return Response.json({ ok: true, ...result });
         } catch (error) {
