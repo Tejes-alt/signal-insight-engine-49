@@ -57,8 +57,8 @@ interface DashboardContextValue {
   error: Error | null;
   connections: SocialConnectionView[];
   connectedCount: number;
-  providerConfigured: boolean;
-  linkingConfigured: boolean;
+  /** Per-platform readiness of the official integrations on this installation. */
+  integrations: { platform: string; configured: boolean; missing: string[] }[];
   integrationsReady: boolean;
   lastSyncedAt: string | null;
   syncing: boolean;
@@ -198,9 +198,9 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       error: (dashboardQuery.error as Error | null) ?? (workspaceQuery.error as Error | null),
       connections,
       connectedCount: live.length,
-      providerConfigured: socialQuery.data?.config?.apiKeyConfigured ?? false,
-      linkingConfigured: socialQuery.data?.config?.linkingConfigured ?? false,
-      integrationsReady: workspaceQuery.data?.integrationsReady ?? false,
+      integrations: socialQuery.data?.integrations ?? [],
+      integrationsReady:
+        (socialQuery.data?.config?.anyConfigured ?? workspaceQuery.data?.integrationsReady) ?? false,
 
       lastSyncedAt,
       syncing,
