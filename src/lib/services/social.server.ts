@@ -316,38 +316,6 @@ export function normalizeAccountMetrics(
   return out;
 }
 
-function normalizePost(entry: Record<string, unknown>): {
-  platform: string;
-  externalId: string;
-  title: string | null;
-  caption: string | null;
-  mediaType: string | null;
-  thumbnailUrl: string | null;
-  permalink: string | null;
-  publishedAt: string;
-  metrics: StoredMetrics;
-} | null {
-  const platform = String(entry["platform"] ?? "");
-  const externalId = String(entry["id"] ?? entry["postId"] ?? entry["socialId"] ?? "");
-  if (!platform || !externalId) return null;
-  const created = String(entry["created"] ?? entry["createdAt"] ?? entry["publishedAt"] ?? "");
-  const publishedAt = created && !Number.isNaN(Date.parse(created)) ? new Date(created).toISOString() : new Date().toISOString();
-  const caption = typeof entry["post"] === "string" ? (entry["post"] as string) : null;
-  const mediaUrls = Array.isArray(entry["mediaUrls"]) ? (entry["mediaUrls"] as unknown[]) : [];
-
-  return {
-    platform,
-    externalId,
-    title: caption ? caption.slice(0, 120) : null,
-    caption,
-    mediaType: mediaUrls.length > 0 ? "media" : "text",
-    thumbnailUrl: typeof mediaUrls[0] === "string" ? (mediaUrls[0] as string) : null,
-    permalink: typeof entry["postUrl"] === "string" ? (entry["postUrl"] as string) : null,
-    publishedAt,
-    metrics: normalizeAccountMetrics(platform, entry),
-  };
-}
-
 /* ------------------------------------------------------------------ */
 /* Synchronization                                                     */
 /* ------------------------------------------------------------------ */
@@ -363,21 +331,51 @@ async function recordHistory(
   orgId: string,
   connectionId: string,
   platform: string,
+  metricDate: string,
   metrics: StoredMetrics,
 ): Promise<void> {
-  const today = new Date().toISOString().slice(0, 10);
   await supabaseAdmin
     .from("metric_history")
     .upsert(
-      { org_id: orgId, connection_id: connectionId, platform, metric_date: today, metrics: metrics as JsonObject },
+      {
+        org_id: orgId,
+        connection_id: connectionId,
+        platform,
+        metric_date: metricDate,
+        metrics: metrics as JsonObject,
+      },
       { onConflict: "connection_id,metric_date" },
     );
 }
 
+async function logSync(input: {
+  orgId: string;
+  connectionId: string;
+  platform: string;
+  status: string;
+  message: string | null;
+  itemsSynced: number;
+  durationMs: number;
+}): Promise<void> {
+  await supabaseAdmin.from("sync_logs").insert({
+    org_id: input.orgId,
+    connection_id: input.connectionId,
+    platform: input.platform,
+    status: input.status,
+    message: input.message,
+    items_synced: input.itemsSynced,
+    duration_ms: input.durationMs,
+  });
+}
+
+/**
+ * Pulls live analytics for one connection straight from the platform's official
+ * API and stores the normalized result, daily history and content performance.
+ */
 export async function syncConnection(orgId: string, connectionId: string): Promise<SyncOutcome> {
   const { data: row, error } = await supabaseAdmin
     .from("social_connections")
-    .select("id, platform, org_id")
+    .select("id, platform, org_id, external_id, handle, display_name, avatar_url, metadata")
     .eq("id", connectionId)
     .eq("org_id", orgId)
     .maybeSingle();
@@ -385,18 +383,36 @@ export async function syncConnection(orgId: string, connectionId: string): Promi
   if (!row) throw new Error("That connection does not exist in this workspace.");
 
   const platform = row.platform as string;
-  const profile = await loadProfile(orgId);
-  if (!profile) throw new ProviderNotConfiguredError();
+  const provider = providerFor(platform);
+  const startedAt = Date.now();
 
-  const startedAt = new Date().toISOString();
   await supabaseAdmin
     .from("social_connections")
-    .update({ sync_status: "syncing", status: "syncing", sync_started_at: startedAt, sync_error: null })
+    .update({
+      sync_status: "syncing",
+      status: "syncing",
+      sync_started_at: new Date(startedAt).toISOString(),
+      sync_error: null,
+    })
     .eq("id", connectionId);
 
   try {
-    const analytics = await socialProvider.getAccountAnalytics(profile.profileKey, [platform]);
-    const metrics = normalizeAccountMetrics(platform, analytics[platform] ?? {});
+    const token = await usableToken(provider, orgId, connectionId);
+    const account = await provider.getAccount(token).catch(() => accountFromRow(row));
+
+    // Keep the stored identity fresh — handles and avatars change.
+    await supabaseAdmin
+      .from("social_connections")
+      .update({
+        external_id: account.externalId || (row.external_id as string | null),
+        handle: account.handle ?? (row.handle as string | null),
+        display_name: account.displayName ?? (row.display_name as string | null),
+        avatar_url: account.avatarUrl ?? (row.avatar_url as string | null),
+      })
+      .eq("id", connectionId);
+
+    const analytics = await provider.getAnalytics(token, account);
+    const metrics = analytics.metrics;
 
     await supabaseAdmin.from("social_metrics").upsert(
       {
@@ -408,21 +424,26 @@ export async function syncConnection(orgId: string, connectionId: string): Promi
       },
       { onConflict: "connection_id" },
     );
-    await recordHistory(orgId, connectionId, platform, metrics);
+
+    const today = new Date().toISOString().slice(0, 10);
+    await recordHistory(orgId, connectionId, platform, today, metrics);
+    for (const point of analytics.history) {
+      if (point.date === today) continue;
+      await recordHistory(orgId, connectionId, platform, point.date, point.metrics);
+    }
 
     let postsStored = 0;
     try {
-      const history = await socialProvider.getHistory(profile.profileKey, 100);
-      for (const entry of history) {
-        const post = normalizePost(entry);
-        if (!post || post.platform !== platform) continue;
+      const items = await provider.getContent(token, account);
+      const detailed = await provider.getContentAnalytics(token, account, items);
+      for (const post of detailed) {
         const { data: saved, error: postError } = await supabaseAdmin
           .from("social_posts")
           .upsert(
             {
               org_id: orgId,
               connection_id: connectionId,
-              platform: post.platform,
+              platform,
               external_post_id: post.externalId,
               title: post.title,
               caption: post.caption,
@@ -448,7 +469,7 @@ export async function syncConnection(orgId: string, connectionId: string): Promi
         postsStored += 1;
       }
     } catch {
-      // Content history is optional — account analytics already succeeded.
+      // Content performance is optional — account analytics already succeeded.
     }
 
     const completedAt = new Date().toISOString();
@@ -465,19 +486,30 @@ export async function syncConnection(orgId: string, connectionId: string): Promi
       })
       .eq("id", connectionId);
 
+    await logSync({
+      orgId,
+      connectionId,
+      platform,
+      status: "success",
+      message: null,
+      itemsSynced: postsStored,
+      durationMs: Date.now() - startedAt,
+    });
     await notify(orgId, "sync_completed", `${platformName(platform)} updated`, null, "success", { platform });
     return { platform, ok: true, postsStored };
   } catch (rawError) {
     const message =
-      rawError instanceof ProviderRequestError
+      rawError instanceof IntegrationNotConfiguredError
         ? rawError.message
         : rawError instanceof Error
           ? rawError.message
           : "The synchronization failed.";
-    const notAuthorized = rawError instanceof ProviderRequestError && rawError.code === "not_authorized";
+    const notAuthorized =
+      rawError instanceof ProviderRequestError &&
+      (rawError.code === "not_authorized" || rawError.status === 401);
     const rateLimited = rawError instanceof ProviderRequestError && rawError.code === "rate_limited";
     const status: ConnectionStatus = notAuthorized ? "permission_error" : "unavailable";
-    // Exponential backoff so a failing account never hammers the provider.
+    // Exponential backoff so a failing account never hammers the platform API.
     const attempts = (await currentAttempts(connectionId)) + 1;
     const backoffMinutes = notAuthorized
       ? 24 * 60
@@ -493,10 +525,20 @@ export async function syncConnection(orgId: string, connectionId: string): Promi
         next_sync_at: new Date(Date.now() + backoffMinutes * 60_000).toISOString(),
       })
       .eq("id", connectionId);
+    await logSync({
+      orgId,
+      connectionId,
+      platform,
+      status: "error",
+      message,
+      itemsSynced: 0,
+      durationMs: Date.now() - startedAt,
+    });
     await notify(orgId, "sync_failed", `${platformName(platform)} sync failed`, message, "error", { platform });
     return { platform, ok: false, error: message, postsStored: 0 };
   }
 }
+
 
 /** How often a healthy connection refreshes itself in the background. */
 export const DEFAULT_SYNC_INTERVAL_MINUTES = 180;
