@@ -42,7 +42,20 @@ export const startConnection = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertMember(context.supabase, data.orgId, context.userId);
     const { ensureSocialProfile, upsertPendingConnection } = await import("./services/social.server");
-    const { socialProvider } = await import("./services/ayrshare.server");
+    const { socialProvider, providerConfig, NOT_CONFIGURED_MESSAGE, LINKING_NOT_CONFIGURED_MESSAGE } =
+      await import("./services/ayrshare.server");
+
+    // Fail loudly and specifically before touching the database.
+    const config = providerConfig();
+    if (!config.apiKeyConfigured) {
+      console.error("[connect] aborted: AYRSHARE_API_KEY is not set on the server.");
+      throw new Error(NOT_CONFIGURED_MESSAGE);
+    }
+    if (!config.linkingConfigured) {
+      console.error(`[connect] aborted: missing ${config.missing.join(", ")}.`);
+      throw new Error(LINKING_NOT_CONFIGURED_MESSAGE);
+    }
+    console.info(`[connect] starting ${data.platform} authorization for org ${data.orgId}`);
 
     const profile = await ensureSocialProfile(data.orgId, context.userId, `SocialPulse ${data.orgId.slice(0, 8)}`);
     await upsertPendingConnection({
@@ -57,6 +70,7 @@ export const startConnection = createServerFn({ method: "POST" })
       redirect: data.returnUrl,
       platforms: [data.platform],
     });
+    console.info(`[connect] authorization URL issued for ${data.platform}`);
     return { url };
   });
 
