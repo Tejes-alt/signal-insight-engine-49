@@ -182,7 +182,7 @@ export async function listAccounts(db: DB, orgId: string): Promise<PublicAccount
     db.from("public_accounts").select("*").eq("org_id", orgId).order("created_at"),
     db
       .from("account_snapshots")
-      .select("account_id,captured_at,followers,posts,views,likes,comments")
+      .select("id,account_id,captured_at,source,followers,posts,views,likes,comments")
       .eq("org_id", orgId)
       .order("captured_at"),
     db
@@ -199,6 +199,8 @@ export async function listAccounts(db: DB, orgId: string): Promise<PublicAccount
     const history: SnapshotPoint[] = (snapshots ?? [])
       .filter((s: any) => s.account_id === row.id)
       .map((s: any) => ({
+        id: s.id as string,
+        source: (s.source as string) ?? "public",
         capturedAt: s.captured_at as string,
         followers: s.followers === null ? null : Number(s.followers),
         posts: s.posts === null ? null : Number(s.posts),

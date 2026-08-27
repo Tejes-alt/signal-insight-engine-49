@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Check, Circle, Lock, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { Check, Circle, Plus, RefreshCw, Trash2, Upload } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { AnimatedNumber, formatNumber } from "@/components/metrics";
 import { PLATFORM_ACCENT, PlatformMark } from "@/components/platform";
@@ -83,7 +83,11 @@ function DataAvailability({ account }: { account: PublicAccountView }) {
           ))}
         </ul>
         <p className="mt-2 text-[0.7rem] leading-relaxed text-muted-foreground">
-          These require authorization from the platform itself.
+          Platforms keep these private. You can add them yourself in the{" "}
+          <Link to="/import" className="text-primary underline-offset-4 hover:underline">
+            Import Center
+          </Link>
+          .
         </p>
       </div>
     </div>
@@ -182,7 +186,7 @@ function AccountCard({ account }: { account: PublicAccountView }) {
               <p className="label-mono">{cell.label}</p>
               <p className="mt-1 font-display text-xl font-semibold tabular">
                 {cell.value === null ? (
-                  <span className="text-sm font-normal text-muted-foreground">Requires account connection</span>
+                  <span className="text-sm font-normal text-muted-foreground">Not recorded yet</span>
                 ) : (
                   <>
                     <AnimatedNumber value={cell.value} format={cell.suffix ? (n) => n.toFixed(1) : formatNumber} />
@@ -201,8 +205,10 @@ function AccountCard({ account }: { account: PublicAccountView }) {
           <Button variant="ghost" size="sm" onClick={() => setOpen((v) => !v)}>
             Data availability
           </Button>
-          <Button variant="outline" size="sm" disabled title="Coming soon">
-            <Lock className="mr-1.5 size-3.5" /> Unlock private analytics
+          <Button asChild variant="outline" size="sm">
+            <Link to="/import">
+              <Upload className="mr-1.5 size-3.5" /> Add measurements
+            </Link>
           </Button>
         </div>
       </div>
@@ -240,7 +246,7 @@ function AddAccountForm() {
     <section className="panel p-5">
       <h2 className="font-display text-base font-semibold">Add an account</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Enter your public username or profile link. SocialPulse never asks for a social media password.
+        Paste your profile link or type your username. SocialPulse never asks for a social media password.
       </p>
 
       <div className="mt-4 flex flex-wrap gap-2">

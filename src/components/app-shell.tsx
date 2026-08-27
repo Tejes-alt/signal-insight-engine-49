@@ -14,6 +14,7 @@ import {
   Settings,
   Sparkles,
   UserRound,
+  Upload,
   Sun,
   X,
 } from "lucide-react";
@@ -34,6 +35,7 @@ const NAV = [
   { to: "/content", label: "Content", icon: Play },
   { to: "/insights", label: "Insights", icon: Sparkles },
   { to: "/accounts", label: "Accounts", icon: Link2 },
+  { to: "/import", label: "Import Center", icon: Upload },
 ] as const;
 
 const NAV_FOOTER = [
@@ -277,10 +279,10 @@ function SidebarBody({ onNavigate }: { onNavigate?: (() => void) | undefined }) 
       <div className="mt-auto space-y-3">
         <SidebarNav onNavigate={onNavigate} items={NAV_FOOTER} />
         <div className="panel p-3">
-          <p className="text-sm font-semibold">Public presence tracking</p>
+          <p className="text-sm font-semibold">Your numbers, your control</p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            SocialPulse reads what your profiles share publicly. Private metrics stay hidden until you authorize a
-            platform.
+            SocialPulse reads what your profiles share publicly, and you can add anything else by hand, from a file or
+            from a screenshot.
           </p>
         </div>
       </div>

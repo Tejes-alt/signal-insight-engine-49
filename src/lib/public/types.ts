@@ -76,6 +76,9 @@ export interface ContentRow extends PublicContentItem {
 }
 
 export interface SnapshotPoint {
+  id?: string;
+  /** Where this measurement came from: public, manual, import or screenshot. */
+  source?: string;
   capturedAt: string;
   followers: number | null;
   posts: number | null;

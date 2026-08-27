@@ -19,39 +19,63 @@ export type Database = {
           account_id: string
           captured_at: string
           comments: number | null
+          created_at: string
           extra: Json
           followers: number | null
           following: number | null
           id: string
+          import_id: string | null
+          impressions: number | null
           likes: number | null
           org_id: string
           posts: number | null
+          profile_visits: number | null
+          reach: number | null
+          saves: number | null
+          shares: number | null
+          source: string
           views: number | null
         }
         Insert: {
           account_id: string
           captured_at?: string
           comments?: number | null
+          created_at?: string
           extra?: Json
           followers?: number | null
           following?: number | null
           id?: string
+          import_id?: string | null
+          impressions?: number | null
           likes?: number | null
           org_id: string
           posts?: number | null
+          profile_visits?: number | null
+          reach?: number | null
+          saves?: number | null
+          shares?: number | null
+          source?: string
           views?: number | null
         }
         Update: {
           account_id?: string
           captured_at?: string
           comments?: number | null
+          created_at?: string
           extra?: Json
           followers?: number | null
           following?: number | null
           id?: string
+          import_id?: string | null
+          impressions?: number | null
           likes?: number | null
           org_id?: string
           posts?: number | null
+          profile_visits?: number | null
+          reach?: number | null
+          saves?: number | null
+          shares?: number | null
+          source?: string
           views?: number | null
         }
         Relationships: [
@@ -269,55 +293,65 @@ export type Database = {
           },
         ]
       }
-      discovered_accounts: {
+      imports: {
         Row: {
-          avatar_url: string | null
-          confidence: string
+          account_id: string | null
+          content_count: number
           created_at: string
-          dismissed: boolean
-          display_name: string | null
-          handle: string
+          created_by: string | null
+          file_name: string
+          file_type: string
           id: string
+          metric_count: number
           org_id: string
           platform: string
-          profile_url: string | null
+          row_count: number
           source: string
-          updated_at: string
-          user_id: string
+          status: string
+          summary: Json
         }
         Insert: {
-          avatar_url?: string | null
-          confidence?: string
+          account_id?: string | null
+          content_count?: number
           created_at?: string
-          dismissed?: boolean
-          display_name?: string | null
-          handle: string
+          created_by?: string | null
+          file_name: string
+          file_type: string
           id?: string
+          metric_count?: number
           org_id: string
           platform: string
-          profile_url?: string | null
-          source?: string
-          updated_at?: string
-          user_id: string
+          row_count?: number
+          source: string
+          status?: string
+          summary?: Json
         }
         Update: {
-          avatar_url?: string | null
-          confidence?: string
+          account_id?: string | null
+          content_count?: number
           created_at?: string
-          dismissed?: boolean
-          display_name?: string | null
-          handle?: string
+          created_by?: string | null
+          file_name?: string
+          file_type?: string
           id?: string
+          metric_count?: number
           org_id?: string
           platform?: string
-          profile_url?: string | null
+          row_count?: number
           source?: string
-          updated_at?: string
-          user_id?: string
+          status?: string
+          summary?: Json
         }
         Relationships: [
           {
-            foreignKeyName: "discovered_accounts_org_id_fkey"
+            foreignKeyName: "imports_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "public_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "imports_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -498,53 +532,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "notifications_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      oauth_states: {
-        Row: {
-          code_verifier: string | null
-          consumed_at: string | null
-          created_at: string
-          expires_at: string
-          handle: string | null
-          org_id: string
-          platform: string
-          redirect_to: string
-          state: string
-          user_id: string
-        }
-        Insert: {
-          code_verifier?: string | null
-          consumed_at?: string | null
-          created_at?: string
-          expires_at: string
-          handle?: string | null
-          org_id: string
-          platform: string
-          redirect_to: string
-          state: string
-          user_id: string
-        }
-        Update: {
-          code_verifier?: string | null
-          consumed_at?: string | null
-          created_at?: string
-          expires_at?: string
-          handle?: string | null
-          org_id?: string
-          platform?: string
-          redirect_to?: string
-          state?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "oauth_states_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -947,47 +934,6 @@ export type Database = {
           },
         ]
       }
-      provider_tokens: {
-        Row: {
-          access_token_ciphertext: string
-          created_at: string
-          expires_at: string | null
-          id: string
-          provider_account_id: string
-          refresh_token_ciphertext: string | null
-          scopes: string[]
-          updated_at: string
-        }
-        Insert: {
-          access_token_ciphertext: string
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          provider_account_id: string
-          refresh_token_ciphertext?: string | null
-          scopes?: string[]
-          updated_at?: string
-        }
-        Update: {
-          access_token_ciphertext?: string
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          provider_account_id?: string
-          refresh_token_ciphertext?: string | null
-          scopes?: string[]
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "provider_tokens_provider_account_id_fkey"
-            columns: ["provider_account_id"]
-            isOneToOne: true
-            referencedRelation: "provider_accounts"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       public_accounts: {
         Row: {
           avatar_url: string | null
@@ -1053,13 +999,21 @@ export type Database = {
       public_content: {
         Row: {
           account_id: string
+          caption: string | null
           comments: number | null
+          content_type: string | null
           external_id: string
           fetched_at: string
           id: string
+          import_id: string | null
+          impressions: number | null
           likes: number | null
           org_id: string
           published_at: string | null
+          reach: number | null
+          saves: number | null
+          shares: number | null
+          source: string
           thumbnail_url: string | null
           title: string | null
           url: string | null
@@ -1067,13 +1021,21 @@ export type Database = {
         }
         Insert: {
           account_id: string
+          caption?: string | null
           comments?: number | null
+          content_type?: string | null
           external_id: string
           fetched_at?: string
           id?: string
+          import_id?: string | null
+          impressions?: number | null
           likes?: number | null
           org_id: string
           published_at?: string | null
+          reach?: number | null
+          saves?: number | null
+          shares?: number | null
+          source?: string
           thumbnail_url?: string | null
           title?: string | null
           url?: string | null
@@ -1081,13 +1043,21 @@ export type Database = {
         }
         Update: {
           account_id?: string
+          caption?: string | null
           comments?: number | null
+          content_type?: string | null
           external_id?: string
           fetched_at?: string
           id?: string
+          import_id?: string | null
+          impressions?: number | null
           likes?: number | null
           org_id?: string
           published_at?: string | null
+          reach?: number | null
+          saves?: number | null
+          shares?: number | null
+          source?: string
           thumbnail_url?: string | null
           title?: string | null
           url?: string | null
@@ -1397,63 +1367,6 @@ export type Database = {
           },
           {
             foreignKeyName: "social_posts_org_id_fkey"
-            columns: ["org_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      social_tokens: {
-        Row: {
-          access_token_ciphertext: string
-          connection_id: string
-          created_at: string
-          expires_at: string | null
-          id: string
-          metadata: Json
-          org_id: string
-          platform: string
-          refresh_token_ciphertext: string | null
-          scopes: Json
-          updated_at: string
-        }
-        Insert: {
-          access_token_ciphertext: string
-          connection_id: string
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          metadata?: Json
-          org_id: string
-          platform: string
-          refresh_token_ciphertext?: string | null
-          scopes?: Json
-          updated_at?: string
-        }
-        Update: {
-          access_token_ciphertext?: string
-          connection_id?: string
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          metadata?: Json
-          org_id?: string
-          platform?: string
-          refresh_token_ciphertext?: string | null
-          scopes?: Json
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "social_tokens_connection_id_fkey"
-            columns: ["connection_id"]
-            isOneToOne: true
-            referencedRelation: "social_connections"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "social_tokens_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"

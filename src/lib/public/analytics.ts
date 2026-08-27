@@ -88,7 +88,14 @@ function isoWeek(date: Date): string {
 }
 
 export function buildOverview(accounts: PublicAccountView[], rangeDays: number): OverviewBundle {
-  const active = accounts.filter((a) => a.status === "available" || a.status === "partial");
+  // An account counts once it holds real data, whatever its source.
+  const active = accounts.filter(
+    (a) =>
+      a.status === "available" ||
+      a.status === "partial" ||
+      a.history.length > 0 ||
+      a.content.length > 0,
+  );
   const since = Date.now() - rangeDays * DAY;
 
   const sum = (values: (number | null | undefined)[]) => {
