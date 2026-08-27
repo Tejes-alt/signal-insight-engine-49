@@ -77,7 +77,8 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 function AccountsPage() {
-  const { orgId, connections, providerConfigured, linkingConfigured, refetch } = useDashboard();
+  const { orgId, connections, integrations, refetch } = useDashboard();
+  const readiness = new Map(integrations.map((i) => [i.platform, i]));
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
@@ -213,15 +214,15 @@ function AccountsPage() {
         </div>
       </div>
 
-      {!providerConfigured || !linkingConfigured ? (
+      {integrations.length > 0 && integrations.every((i) => !i.configured) ? (
         <div className="panel animate-rise mb-6 flex items-start gap-4 border-warning/40 p-5">
           <AlertTriangle className="mt-0.5 size-5 shrink-0 text-warning" />
           <div>
-            <h2 className="font-display font-semibold">Social integration setup required</h2>
+            <h2 className="font-display font-semibold">Platform integrations are not configured yet</h2>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-              The server-side credentials for the social integration provider are missing, so authorization cannot be
-              started yet. Add AYRSHARE_API_KEY, AYRSHARE_DOMAIN and AYRSHARE_PRIVATE_KEY to the server secrets. Demo
-              Mode stays fully available in the meantime.
+              This installation has no platform developer credentials, so authorization cannot start.
+              An administrator can review exactly what is missing on the setup status page. Demo Mode
+              stays fully available in the meantime.
             </p>
           </div>
         </div>
@@ -232,6 +233,8 @@ function AccountsPage() {
           const connection = byPlatform.get(platform.id);
           const status = (connection?.status ?? "pending") as ConnectionStatus;
           const isConnected = connection && (status === "connected" || status === "synced");
+          const ready = readiness.get(platform.id);
+          const configured = ready?.configured ?? true;
           return (
             <article
               key={platform.id}
@@ -324,13 +327,18 @@ function AccountsPage() {
                       {connection.syncError ? ` — ${connection.syncError}` : ""}
                     </p>
                   ) : null}
+                  {!configured ? (
+                    <p className="text-xs leading-relaxed text-warning">
+                      An administrator has not added this platform's developer credentials yet.
+                    </p>
+                  ) : null}
                   {failures[platform.id] ? (
                     <p className="text-xs leading-relaxed text-destructive">{failures[platform.id]}</p>
                   ) : null}
                   <Button
                     className="mt-auto w-full"
                     variant={failures[platform.id] ? "destructive" : "default"}
-                    disabled={busy === platform.id || !orgId}
+                    disabled={busy === platform.id || !orgId || !configured}
                     onClick={() => connect.mutate(platform.id)}
                   >
                     {busy === platform.id ? (
@@ -342,7 +350,9 @@ function AccountsPage() {
                     ) : (
                       <Plus className="mr-2 size-4" />
                     )}
-                    {!orgId
+                    {!configured
+                      ? `${platform.name} not available yet`
+                      : !orgId
                       ? "Preparing workspace…"
                       : busy === platform.id
                       ? "Connecting…"
