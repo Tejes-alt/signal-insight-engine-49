@@ -275,6 +275,96 @@ export const PROVIDERS: Record<ProviderId, ProviderDescriptor> = {
     ],
     docsUrl: "https://developers.facebook.com/docs/instagram-platform",
   },
+  linkedin: {
+    id: "linkedin",
+    name: "LinkedIn",
+    mark: "in",
+    accent: "var(--color-chart-2)",
+    tagline: "Member and organization page performance through the Marketing API.",
+    modes: {
+      public: {
+        implemented: false,
+        requiredEnv: [],
+        inputLabel: "Profile or page URL",
+        inputPlaceholder: "linkedin.com/in/you  ·  linkedin.com/company/acme",
+        helpText:
+          "LinkedIn has no public read API. Analytics are only available for the member or page that authorizes your app.",
+      },
+      oauth: {
+        implemented: false,
+        requiredEnv: ["LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET"],
+        scopes: ["r_basicprofile", "r_organization_social", "rw_organization_admin", "r_member_social"],
+        setupSteps: [
+          "Create an app in the LinkedIn Developer portal and associate it with a company page.",
+          "Request the Community Management API product — member and page analytics scopes require approval.",
+          "Register this app's redirect URL and store the client ID and secret as server secrets.",
+        ],
+      },
+    },
+    capabilities: {
+      profiles: "requires_authorization",
+      posts: "requires_authorization",
+      comments: "requires_authorization",
+      likes: "requires_authorization",
+      shares: "requires_authorization",
+      views: "requires_authorization",
+      followers: "requires_authorization",
+      mentions: "requires_elevated_access",
+      search: "unsupported",
+      historical: "requires_authorization",
+      webhooks: "unsupported",
+    },
+    notes: [
+      "Personal connection counts are not exposed by the API — follower counts are, for pages and creator profiles.",
+      "Post impressions and profile views require the Community Management API product to be approved.",
+    ],
+    docsUrl: "https://learn.microsoft.com/en-us/linkedin/marketing/",
+  },
+  facebook: {
+    id: "facebook",
+    name: "Facebook",
+    mark: "f",
+    accent: "var(--color-chart-1)",
+    tagline: "Page insights, reach and post engagement through the Graph API.",
+    modes: {
+      public: {
+        implemented: false,
+        requiredEnv: [],
+        inputLabel: "Page name or URL",
+        inputPlaceholder: "facebook.com/yourpage",
+        helpText:
+          "Only Pages you administer can be analyzed, and only after the Page admin authorizes your app.",
+      },
+      oauth: {
+        implemented: false,
+        requiredEnv: ["META_APP_ID", "META_APP_SECRET"],
+        scopes: ["pages_show_list", "pages_read_engagement", "read_insights"],
+        setupSteps: [
+          "Create a Meta app and add the Facebook Login and Pages API products.",
+          "Complete App Review for pages_read_engagement and read_insights.",
+          "Register this app's OAuth redirect URI and store the app ID and secret as server secrets.",
+        ],
+      },
+    },
+    capabilities: {
+      profiles: "requires_authorization",
+      posts: "requires_authorization",
+      comments: "requires_authorization",
+      likes: "requires_authorization",
+      shares: "requires_authorization",
+      views: "requires_authorization",
+      followers: "requires_authorization",
+      mentions: "requires_elevated_access",
+      search: "unsupported",
+      historical: "requires_authorization",
+      webhooks: "requires_authorization",
+    },
+    notes: [
+      "Personal Facebook profiles cannot be analyzed. The Graph API only exposes Pages.",
+      "Organic reach metrics are aggregated by Meta and can lag by up to 48 hours.",
+    ],
+    docsUrl: "https://developers.facebook.com/docs/graph-api",
+  },
 };
 
 export const PROVIDER_LIST = Object.values(PROVIDERS);
