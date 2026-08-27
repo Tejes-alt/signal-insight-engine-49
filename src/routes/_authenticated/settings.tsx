@@ -226,7 +226,7 @@ function SettingsPage() {
           <ul className="space-y-2 text-sm leading-relaxed text-muted-foreground">
             <li>SocialPulse never receives, requests or stores your social-media passwords.</li>
             <li>Authorization happens entirely on each platform's own website.</li>
-            <li>Access tokens are held server-side and are never sent to your browser.</li>
+            <li>Your account access stays securely on our servers and never reaches your browser.</li>
             <li>You can disconnect any account at any time from the Accounts page.</li>
             <li>You can delete your stored analytics or your entire workspace data below.</li>
             <li>Only members of your workspace can read your analytics — enforced in the database.</li>

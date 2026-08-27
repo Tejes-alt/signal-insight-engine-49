@@ -192,7 +192,10 @@ export const getSetupStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => orgInput.parse(input))
   .handler(async ({ data, context }) => {
-    await assertMember(context.supabase, data.orgId, context.userId);
+    const role = await assertMember(context.supabase, data.orgId, context.userId);
+    if (!["owner", "admin"].includes(role)) {
+      throw new Error("You don't have access to this page.");
+    }
     const { setupStatus } = await import("./services/social.server");
     return setupStatus(data.orgId);
   });

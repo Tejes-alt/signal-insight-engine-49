@@ -27,6 +27,9 @@ export const getWorkspace = createServerFn({ method: "GET" })
       console.error("[onboarding] integration status unavailable:", error);
     }
 
-    return { workspace, workspaces: all, email, integrationsReady, readyPlatforms };
+    const role = all.find((w) => w.id === workspace.id)?.role ?? "member";
+    const isAdmin = role === "owner" || role === "admin";
+
+    return { workspace, workspaces: all, email, role, isAdmin, integrationsReady, readyPlatforms };
   });
 
