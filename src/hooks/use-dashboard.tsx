@@ -38,8 +38,10 @@ export interface SocialConnectionView {
   syncStatus: string;
   syncError: string | null;
   lastSyncedAt: string | null;
+  nextSyncAt: string | null;
   metrics: Record<string, { value: number | null; status: string; reason?: string }>;
 }
+
 
 interface DashboardContextValue {
   orgId: string | null;
