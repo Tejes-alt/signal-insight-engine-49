@@ -212,6 +212,62 @@ export type Database = {
           },
         ]
       }
+      insights: {
+        Row: {
+          body: string
+          category: string
+          created_at: string
+          evidence: Json
+          generated_at: string
+          id: string
+          metric_label: string | null
+          metric_value: string | null
+          org_id: string
+          recommendation: string | null
+          title: string
+          tone: string
+          window_days: number
+        }
+        Insert: {
+          body: string
+          category: string
+          created_at?: string
+          evidence?: Json
+          generated_at?: string
+          id?: string
+          metric_label?: string | null
+          metric_value?: string | null
+          org_id: string
+          recommendation?: string | null
+          title: string
+          tone?: string
+          window_days?: number
+        }
+        Update: {
+          body?: string
+          category?: string
+          created_at?: string
+          evidence?: Json
+          generated_at?: string
+          id?: string
+          metric_label?: string | null
+          metric_value?: string | null
+          org_id?: string
+          recommendation?: string | null
+          title?: string
+          tone?: string
+          window_days?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insights_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       memberships: {
         Row: {
           created_at: string
@@ -237,6 +293,98 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      metric_history: {
+        Row: {
+          connection_id: string
+          created_at: string
+          id: string
+          metric_date: string
+          metrics: Json
+          org_id: string
+          platform: string
+        }
+        Insert: {
+          connection_id: string
+          created_at?: string
+          id?: string
+          metric_date: string
+          metrics?: Json
+          org_id: string
+          platform: string
+        }
+        Update: {
+          connection_id?: string
+          created_at?: string
+          id?: string
+          metric_date?: string
+          metrics?: Json
+          org_id?: string
+          platform?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metric_history_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "social_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "metric_history_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          data: Json
+          id: string
+          kind: string
+          org_id: string
+          read_at: string | null
+          severity: string
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          data?: Json
+          id?: string
+          kind: string
+          org_id: string
+          read_at?: string | null
+          severity?: string
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          data?: Json
+          id?: string
+          kind?: string
+          org_id?: string
+          read_at?: string | null
+          severity?: string
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_org_id_fkey"
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -378,6 +526,48 @@ export type Database = {
             columns: ["post_id"]
             isOneToOne: false
             referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_metrics: {
+        Row: {
+          captured_at: string
+          created_at: string
+          id: string
+          metrics: Json
+          org_id: string
+          post_id: string
+        }
+        Insert: {
+          captured_at?: string
+          created_at?: string
+          id?: string
+          metrics?: Json
+          org_id: string
+          post_id: string
+        }
+        Update: {
+          captured_at?: string
+          created_at?: string
+          id?: string
+          metrics?: Json
+          org_id?: string
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_metrics_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_metrics_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: true
+            referencedRelation: "social_posts"
             referencedColumns: ["id"]
           },
         ]
@@ -729,6 +919,242 @@ export type Database = {
           },
         ]
       }
+      social_connections: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          external_id: string | null
+          handle: string | null
+          id: string
+          last_synced_at: string | null
+          metadata: Json
+          org_id: string
+          permissions: Json
+          platform: string
+          social_profile_id: string
+          status: string
+          sync_completed_at: string | null
+          sync_error: string | null
+          sync_started_at: string | null
+          sync_status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          external_id?: string | null
+          handle?: string | null
+          id?: string
+          last_synced_at?: string | null
+          metadata?: Json
+          org_id: string
+          permissions?: Json
+          platform: string
+          social_profile_id: string
+          status?: string
+          sync_completed_at?: string | null
+          sync_error?: string | null
+          sync_started_at?: string | null
+          sync_status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          external_id?: string | null
+          handle?: string | null
+          id?: string
+          last_synced_at?: string | null
+          metadata?: Json
+          org_id?: string
+          permissions?: Json
+          platform?: string
+          social_profile_id?: string
+          status?: string
+          sync_completed_at?: string | null
+          sync_error?: string | null
+          sync_started_at?: string | null
+          sync_status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_connections_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_connections_social_profile_id_fkey"
+            columns: ["social_profile_id"]
+            isOneToOne: false
+            referencedRelation: "social_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_metrics: {
+        Row: {
+          captured_at: string
+          connection_id: string
+          created_at: string
+          id: string
+          metrics: Json
+          org_id: string
+          platform: string
+          updated_at: string
+        }
+        Insert: {
+          captured_at?: string
+          connection_id: string
+          created_at?: string
+          id?: string
+          metrics?: Json
+          org_id: string
+          platform: string
+          updated_at?: string
+        }
+        Update: {
+          captured_at?: string
+          connection_id?: string
+          created_at?: string
+          id?: string
+          metrics?: Json
+          org_id?: string
+          platform?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_metrics_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: true
+            referencedRelation: "social_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_metrics_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_posts: {
+        Row: {
+          caption: string | null
+          connection_id: string
+          created_at: string
+          external_post_id: string
+          id: string
+          media_type: string | null
+          org_id: string
+          permalink: string | null
+          platform: string
+          published_at: string
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          caption?: string | null
+          connection_id: string
+          created_at?: string
+          external_post_id: string
+          id?: string
+          media_type?: string | null
+          org_id: string
+          permalink?: string | null
+          platform: string
+          published_at: string
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          caption?: string | null
+          connection_id?: string
+          created_at?: string
+          external_post_id?: string
+          id?: string
+          media_type?: string | null
+          org_id?: string
+          permalink?: string | null
+          platform?: string
+          published_at?: string
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_posts_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "social_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_posts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_profiles: {
+        Row: {
+          created_at: string
+          id: string
+          org_id: string
+          profile_key_ciphertext: string | null
+          profile_ref: string | null
+          provider: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          org_id: string
+          profile_key_ciphertext?: string | null
+          profile_ref?: string | null
+          provider?: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          org_id?: string
+          profile_key_ciphertext?: string | null
+          profile_ref?: string | null
+          provider?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_profiles_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sync_jobs: {
         Row: {
           error: string | null
@@ -923,6 +1349,56 @@ export type Database = {
             columns: ["topic_id"]
             isOneToOne: false
             referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_preferences: {
+        Row: {
+          created_at: string
+          default_range_days: number
+          goal: string | null
+          notification_settings: Json
+          onboarding_completed: boolean
+          org_id: string | null
+          preferred_metrics: Json
+          primary_platform: string | null
+          theme: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_range_days?: number
+          goal?: string | null
+          notification_settings?: Json
+          onboarding_completed?: boolean
+          org_id?: string | null
+          preferred_metrics?: Json
+          primary_platform?: string | null
+          theme?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          default_range_days?: number
+          goal?: string | null
+          notification_settings?: Json
+          onboarding_completed?: boolean
+          org_id?: string | null
+          preferred_metrics?: Json
+          primary_platform?: string | null
+          theme?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_preferences_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
