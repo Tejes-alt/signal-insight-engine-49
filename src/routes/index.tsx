@@ -142,9 +142,9 @@ function Landing() {
             <div>
               <h2 className="font-display text-2xl font-bold">We never ask for your platform passwords</h2>
               <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                SocialPulse connects only through each platform's official API and authorization screen. You enter your
-                handle, approve access on the platform itself, and tokens stay encrypted on our server — revocable at
-                any time. When an API doesn't expose a metric, we label it unavailable rather than guessing.
+                SocialPulse connects only through each platform's own official sign-in screen. You enter your handle,
+                approve access on the platform itself, and you can remove that access at any time. When a platform
+                doesn't share a particular number with us, we say so instead of guessing.
               </p>
             </div>
             <ul className="flex flex-wrap justify-center gap-2">
