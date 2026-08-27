@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Settings,
   Sparkles,
+  UserRound,
   Sun,
   X,
 } from "lucide-react";
@@ -33,7 +34,11 @@ const NAV = [
   { to: "/content", label: "Content", icon: Play },
   { to: "/insights", label: "Insights", icon: Sparkles },
   { to: "/accounts", label: "Accounts", icon: Link2 },
+] as const;
+
+const NAV_FOOTER = [
   { to: "/settings", label: "Settings", icon: Settings },
+  { to: "/profile", label: "Profile", icon: UserRound },
 ] as const;
 
 export function Logo({ compact = false }: { compact?: boolean }) {
@@ -52,9 +57,13 @@ export function Logo({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function SidebarNav({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const items = NAV;
+function SidebarNav({
+  onNavigate,
+  items = NAV,
+}: {
+  onNavigate?: (() => void) | undefined;
+  items?: readonly { to: string; label: string; icon: typeof Settings }[];
+}) {
   return (
     <nav className="flex flex-col gap-1">
       {items.map(({ to, label, icon: Icon }) => {
@@ -265,6 +274,7 @@ function SidebarBody({ onNavigate }: { onNavigate?: (() => void) | undefined }) 
       </Link>
       <SidebarNav onNavigate={onNavigate} />
       <div className="mt-auto space-y-3">
+        <SidebarNav onNavigate={onNavigate} items={NAV_FOOTER} />
         <div className="panel p-3">
           <p className="text-sm font-semibold">Public presence tracking</p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
