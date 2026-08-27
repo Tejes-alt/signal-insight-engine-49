@@ -2,10 +2,8 @@ import { useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  Activity,
   BarChart3,
   Bell,
-  FlaskConical,
   LayoutDashboard,
   Link2,
   LogOut,
@@ -23,7 +21,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { getNotifications, markNotificationsRead } from "@/lib/social.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTheme } from "@/components/theme-provider";
 import { RANGES } from "@/hooks/use-dashboard";
@@ -38,8 +35,6 @@ const NAV = [
   { to: "/accounts", label: "Accounts", icon: Link2 },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
-
-const ADMIN_NAV = [{ to: "/admin/integrations", label: "Diagnostics", icon: Activity }] as const;
 
 export function Logo({ compact = false }: { compact?: boolean }) {
   return (
@@ -59,8 +54,7 @@ export function Logo({ compact = false }: { compact?: boolean }) {
 
 function SidebarNav({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { isAdmin } = useDashboard();
-  const items = isAdmin ? [...NAV, ...ADMIN_NAV] : NAV;
+  const items = NAV;
   return (
     <nav className="flex flex-col gap-1">
       {items.map(({ to, label, icon: Icon }) => {
