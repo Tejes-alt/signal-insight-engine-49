@@ -148,81 +148,68 @@ export async function listConnections(orgId: string): Promise<ConnectionRow[]> {
   });
 }
 
-export async function upsertPendingConnection(input: {
+/**
+ * Records the authorized account on the connection row. Called by the OAuth
+ * callback once the platform itself has confirmed ownership.
+ */
+export async function upsertConnectedAccount(input: {
   orgId: string;
   userId: string;
-  profileId: string;
   platform: PlatformId;
-  handle: string | null;
+  account: ProviderAccount;
+  scopes: string[];
+  capabilities: MetricKey[];
 }): Promise<ConnectionRow> {
+  const now = new Date().toISOString();
   const { error } = await supabaseAdmin.from("social_connections").upsert(
     {
       org_id: input.orgId,
       user_id: input.userId,
-      social_profile_id: input.profileId,
       platform: input.platform,
-      handle: input.handle,
-      status: "pending",
+      external_id: input.account.externalId,
+      handle: input.account.handle,
+      display_name: input.account.displayName,
+      avatar_url: input.account.avatarUrl,
+      metadata: input.account.metadata,
+      permissions: input.scopes,
+      scopes: input.scopes,
+      capabilities: input.capabilities,
+      status: "connected",
       sync_status: "idle",
+      sync_error: null,
+      sync_attempts: 0,
+      connected_at: now,
+      next_sync_at: now,
     },
     { onConflict: "org_id,platform" },
   );
   if (error) throw new Error(error.message);
-  const connections = await listConnections(input.orgId);
-  const created = connections.find((c) => c.platform === input.platform);
-  if (!created) throw new Error("The connection could not be created.");
+
+  const created = (await listConnections(input.orgId)).find((c) => c.platform === input.platform);
+  if (!created) throw new Error("The connection could not be stored.");
   return created;
 }
 
 /**
- * Reconciles stored connections against what the user has actually authorized
- * at the provider. Platforms the user revoked are marked as needing
+ * Reconciles stored connections against the credentials still held. A
+ * connection whose credentials were revoked or deleted is marked as needing
  * reconnection rather than silently disappearing.
  */
 export async function refreshConnectionStatuses(orgId: string): Promise<ConnectionRow[]> {
-  const profile = await loadProfile(orgId);
-  if (!profile) return listConnections(orgId);
-
-  let accounts: Awaited<ReturnType<typeof socialProvider.getConnectionStatus>>;
-  try {
-    accounts = await socialProvider.getConnectionStatus(profile.profileKey);
-  } catch (error) {
-    if (error instanceof ProviderNotConfiguredError) return listConnections(orgId);
-    throw error;
-  }
-
-  const authorized = new Map(accounts.map((a) => [a.platform, a]));
   const stored = await listConnections(orgId);
-
-  for (const account of accounts) {
-    const match = stored.find((c) => c.platform === account.platform);
-    const payload: Record<string, unknown> = {
-      org_id: orgId,
-      platform: account.platform,
-      handle: account.username ?? match?.handle ?? null,
-      display_name: account.displayName ?? match?.displayName ?? null,
-      avatar_url: account.avatarUrl ?? match?.avatarUrl ?? null,
-      external_id: account.externalId,
-      status: match?.status === "synced" ? "synced" : "connected",
-      metadata: account.metadata,
-    };
-    if (match) {
-      await supabaseAdmin.from("social_connections").update(payload as never).eq("id", match.id);
-    }
-  }
-
   for (const connection of stored) {
-    if (connection.status === "pending") continue;
-    if (!authorized.has(connection.platform)) {
+    if (connection.status === "needs_reconnect") continue;
+    const token = await loadTokens(connection.id);
+    if (!token) {
       await supabaseAdmin
         .from("social_connections")
-        .update({ status: "needs_reconnect" })
+        .update({ status: "needs_reconnect", sync_status: "idle" })
         .eq("id", connection.id);
     }
   }
-
   return listConnections(orgId);
 }
+
 
 /* ------------------------------------------------------------------ */
 /* Normalization                                                       */
