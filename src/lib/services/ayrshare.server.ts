@@ -14,9 +14,15 @@ import type { JsonObject, JsonValue } from "../json";
 
 const BASE_URL = "https://api.ayrshare.com/api";
 
+export const NOT_CONFIGURED_MESSAGE =
+  "Social integrations are not configured yet. Add AYRSHARE_API_KEY to the server-side secrets.";
+
+export const LINKING_NOT_CONFIGURED_MESSAGE =
+  "Account linking is not configured yet. Add AYRSHARE_DOMAIN and AYRSHARE_PRIVATE_KEY to the server-side secrets.";
+
 export class ProviderNotConfiguredError extends Error {
-  constructor() {
-    super("The social integration provider is not configured yet.");
+  constructor(message: string = NOT_CONFIGURED_MESSAGE) {
+    super(message);
     this.name = "ProviderNotConfiguredError";
   }
 }
@@ -107,6 +113,8 @@ async function request<T = JsonValue>(path: string, options: RequestOptions = {}
   const url = new URL(`${BASE_URL}${path}`);
   for (const [k, v] of Object.entries(options.query ?? {})) url.searchParams.set(k, v);
 
+  const started = Date.now();
+  console.info(`[social-provider] -> ${options.method ?? "GET"} ${url.pathname}`);
   let response: Response;
   try {
     response = await fetch(url, {
@@ -114,9 +122,13 @@ async function request<T = JsonValue>(path: string, options: RequestOptions = {}
       headers,
       ...(options.body ? { body: JSON.stringify(options.body) } : {}),
     });
-  } catch {
+  } catch (cause) {
+    console.error(`[social-provider] network failure on ${url.pathname}:`, cause);
     throw new ProviderRequestError("The social provider could not be reached.", 503, "provider_unreachable");
   }
+  console.info(
+    `[social-provider] <- ${response.status} ${url.pathname} (${Date.now() - started}ms)`,
+  );
 
   const text = await response.text();
   let payload: JsonValue = null;
@@ -138,6 +150,7 @@ async function request<T = JsonValue>(path: string, options: RequestOptions = {}
         : response.status === 401 || response.status === 403
           ? "not_authorized"
           : "provider_error";
+    console.error(`[social-provider] ${url.pathname} failed ${response.status}: ${message}`);
     throw new ProviderRequestError(message, response.status, code);
   }
 
@@ -191,11 +204,7 @@ export const socialProvider = {
     const domain = process.env["AYRSHARE_DOMAIN"];
     const privateKey = process.env["AYRSHARE_PRIVATE_KEY"];
     if (!domain || !privateKey) {
-      throw new ProviderRequestError(
-        "Account linking is not configured yet. The workspace domain and linking key must be set on the server.",
-        503,
-        "linking_not_configured",
-      );
+      throw new ProviderRequestError(LINKING_NOT_CONFIGURED_MESSAGE, 503, "linking_not_configured");
     }
     const body: JsonObject = {
       domain,
