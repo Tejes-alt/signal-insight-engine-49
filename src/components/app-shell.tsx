@@ -34,6 +34,7 @@ const NAV = [
   { to: "/content", label: "Content", icon: Play },
   { to: "/insights", label: "Insights", icon: Sparkles },
   { to: "/accounts", label: "Accounts", icon: Link2 },
+  { to: "/import", label: "Import Center", icon: Upload },
 ] as const;
 
 const NAV_FOOTER = [
