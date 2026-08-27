@@ -213,7 +213,7 @@ function TopBar({ onOpenMenu, onOpenCommand }: { onOpenMenu: () => void; onOpenC
   }
 
   return (
-    <header className="glass sticky top-0 z-30 flex h-13 items-center gap-3 border-x-0 border-t-0 px-4 py-2.5 md:px-8">
+    <header className="glass sticky top-0 z-30 flex h-[3.25rem] items-center gap-3 border-x-0 border-t-0 px-4 py-2.5 md:px-8">
       <button
         className="press grid size-8 place-items-center rounded-md text-muted-foreground lg:hidden"
         onClick={onOpenMenu}
@@ -402,7 +402,7 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <Section bleed className="border-b border-border px-4 pb-8 md:px-8 md:pb-10">
+    <Section bleed className="mb-8 border-b border-border px-4 pb-8 md:mb-10 md:px-8 md:pb-10">
 
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div className="max-w-2xl">
