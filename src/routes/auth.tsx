@@ -121,32 +121,49 @@ function AuthPage() {
     mode === "signin" ? "Welcome back" : mode === "signup" ? "Create your account" : "Reset your password";
 
   return (
-    <div className="aurora grain relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
-      <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" aria-hidden>
-        <span className="absolute left-1/2 top-1/2 size-[26rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/15 halo-ring" />
-        <span
-          className="absolute left-1/2 top-1/2 size-[26rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/10 halo-ring"
-          style={{ animationDelay: "1.8s" }}
-        />
-      </div>
-      <div className="panel gradient-border animate-rise relative w-full max-w-md p-7 sm:p-8">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="size-3.5" /> Back to SocialPulse
-        </Link>
-        <div className="mt-6 flex flex-col leading-none">
-          <span className="font-display text-[0.66rem] font-semibold tracking-[0.34em] text-muted-foreground">SOCIAL</span>
-          <span className="gradient-text font-display text-2xl font-bold tracking-[0.16em]">PULSE</span>
+    <div className="grain grid min-h-screen lg:grid-cols-[1.05fr_minmax(26rem,0.95fr)]">
+      {/* Brand side — the mark at architectural scale over the pulse grid */}
+      <aside className="pulse-grid relative hidden overflow-hidden border-r border-border bg-sidebar lg:flex lg:flex-col lg:justify-between lg:p-12">
+        <SocialPulseLogo animate />
+        <div className="relative">
+          <MarkWatermark className="absolute -left-16 -top-24 opacity-[0.07]" />
+          <h2 className="relative max-w-md font-display text-[2.6rem] font-semibold leading-[1.04] tracking-[-0.035em]">
+            Every number here was actually measured.
+          </h2>
+          <p className="relative mt-5 max-w-sm text-sm leading-relaxed text-muted-foreground">
+            SocialPulse reads what your profiles publish openly, stores each reading with its date and source, and
+            calculates growth from those readings alone. Nothing is estimated, nothing is invented.
+          </p>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">Your social intelligence, in one place.</p>
-        <h1 className="mt-5 font-display text-2xl font-bold text-foreground">{title}</h1>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          {mode === "forgot"
-            ? "Enter your SocialPulse email and we'll send you a link to choose a new password."
-            : "This password is for SocialPulse only. We never ask for your social media passwords."}
-        </p>
+        <div className="relative flex items-center gap-6">
+          {["No social passwords", "No API keys", "No demo data"].map((item) => (
+            <span key={item} className="label-faint flex items-center gap-2">
+              <span className="size-1 rounded-full bg-primary" />
+              {item}
+            </span>
+          ))}
+        </div>
+      </aside>
+
+      {/* Form side */}
+      <div className="relative flex items-center justify-center px-5 py-12 sm:px-10">
+        <div className="animate-rise w-full max-w-sm">
+          <Link
+            to="/"
+            className="label-faint inline-flex items-center gap-1.5 transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="size-3.5" /> Back
+          </Link>
+          <div className="mt-7 lg:hidden">
+            <SocialPulseLogo />
+          </div>
+          <h1 className="mt-6 font-display text-[1.9rem] font-semibold tracking-[-0.03em]">{title}</h1>
+          <p className="mt-2.5 text-sm leading-relaxed text-muted-foreground">
+            {mode === "forgot"
+              ? "Enter your SocialPulse email and we'll send you a link to choose a new password."
+              : "This password is for SocialPulse only. We never ask for your social media passwords."}
+          </p>
+
 
         {sent ? (
           <div className="mt-6 space-y-4">
