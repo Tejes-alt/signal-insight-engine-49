@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_snapshots: {
+        Row: {
+          account_id: string
+          captured_at: string
+          comments: number | null
+          extra: Json
+          followers: number | null
+          following: number | null
+          id: string
+          likes: number | null
+          org_id: string
+          posts: number | null
+          views: number | null
+        }
+        Insert: {
+          account_id: string
+          captured_at?: string
+          comments?: number | null
+          extra?: Json
+          followers?: number | null
+          following?: number | null
+          id?: string
+          likes?: number | null
+          org_id: string
+          posts?: number | null
+          views?: number | null
+        }
+        Update: {
+          account_id?: string
+          captured_at?: string
+          comments?: number | null
+          extra?: Json
+          followers?: number | null
+          following?: number | null
+          id?: string
+          likes?: number | null
+          org_id?: string
+          posts?: number | null
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_snapshots_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "public_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_snapshots_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       alert_events: {
         Row: {
           acknowledged: boolean
@@ -927,6 +984,128 @@ export type Database = {
             columns: ["provider_account_id"]
             isOneToOne: true
             referencedRelation: "provider_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_accounts: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          external_id: string | null
+          first_tracked_at: string
+          handle: string
+          id: string
+          last_checked_at: string | null
+          org_id: string
+          platform: string
+          profile_url: string | null
+          status: string
+          status_reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          external_id?: string | null
+          first_tracked_at?: string
+          handle: string
+          id?: string
+          last_checked_at?: string | null
+          org_id: string
+          platform: string
+          profile_url?: string | null
+          status?: string
+          status_reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          external_id?: string | null
+          first_tracked_at?: string
+          handle?: string
+          id?: string
+          last_checked_at?: string | null
+          org_id?: string
+          platform?: string
+          profile_url?: string | null
+          status?: string
+          status_reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_accounts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_content: {
+        Row: {
+          account_id: string
+          comments: number | null
+          external_id: string
+          fetched_at: string
+          id: string
+          likes: number | null
+          org_id: string
+          published_at: string | null
+          thumbnail_url: string | null
+          title: string | null
+          url: string | null
+          views: number | null
+        }
+        Insert: {
+          account_id: string
+          comments?: number | null
+          external_id: string
+          fetched_at?: string
+          id?: string
+          likes?: number | null
+          org_id: string
+          published_at?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          url?: string | null
+          views?: number | null
+        }
+        Update: {
+          account_id?: string
+          comments?: number | null
+          external_id?: string
+          fetched_at?: string
+          id?: string
+          likes?: number | null
+          org_id?: string
+          published_at?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          url?: string | null
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_content_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "public_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_content_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]

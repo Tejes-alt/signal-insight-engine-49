@@ -1,14 +1,14 @@
-import { PROVIDERS, type ProviderId } from "@/lib/providers/registry";
+import { PLATFORMS, type PlatformId } from "@/lib/social/platforms";
 import { cn } from "@/lib/utils";
 
-/** Brand accent per platform, resolved from design tokens (never hardcoded hex). */
-export const PLATFORM_ACCENT: Record<ProviderId, string> = {
-  youtube: "var(--color-youtube)",
-  instagram: "var(--color-instagram)",
-  linkedin: "var(--color-linkedin)",
-  tiktok: "var(--color-tiktok)",
-  x: "var(--color-x)",
-  facebook: "var(--color-facebook)",
+/** Brand accent per platform. */
+export const PLATFORM_ACCENT: Record<PlatformId, string> = {
+  youtube: PLATFORMS.youtube.accent,
+  instagram: PLATFORMS.instagram.accent,
+  linkedin: PLATFORMS.linkedin.accent,
+  tiktok: PLATFORMS.tiktok.accent,
+  twitter: PLATFORMS.twitter.accent,
+  facebook: PLATFORMS.facebook.accent,
 };
 
 export function PlatformMark({
@@ -16,11 +16,11 @@ export function PlatformMark({
   size = "md",
   className,
 }: {
-  provider: ProviderId;
+  provider: PlatformId;
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
-  const descriptor = PROVIDERS[provider];
+  const descriptor = PLATFORMS[provider];
   const accent = PLATFORM_ACCENT[provider];
   return (
     <span
@@ -43,6 +43,6 @@ export function PlatformMark({
   );
 }
 
-export function platformName(provider: ProviderId) {
-  return PROVIDERS[provider].name;
+export function platformName(provider: PlatformId) {
+  return PLATFORMS[provider].name;
 }

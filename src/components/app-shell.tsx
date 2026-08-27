@@ -2,10 +2,8 @@ import { useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  Activity,
   BarChart3,
   Bell,
-  FlaskConical,
   LayoutDashboard,
   Link2,
   LogOut,
@@ -23,7 +21,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { getNotifications, markNotificationsRead } from "@/lib/social.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTheme } from "@/components/theme-provider";
 import { RANGES } from "@/hooks/use-dashboard";
@@ -38,8 +35,6 @@ const NAV = [
   { to: "/accounts", label: "Accounts", icon: Link2 },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
-
-const ADMIN_NAV = [{ to: "/admin/integrations", label: "Diagnostics", icon: Activity }] as const;
 
 export function Logo({ compact = false }: { compact?: boolean }) {
   return (
@@ -59,8 +54,7 @@ export function Logo({ compact = false }: { compact?: boolean }) {
 
 function SidebarNav({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { isAdmin } = useDashboard();
-  const items = isAdmin ? [...NAV, ...ADMIN_NAV] : NAV;
+  const items = NAV;
   return (
     <nav className="flex flex-col gap-1">
       {items.map(({ to, label, icon: Icon }) => {
@@ -92,27 +86,6 @@ function SidebarNav({ onNavigate }: { onNavigate?: (() => void) | undefined }) {
   );
 }
 
-function DemoToggle() {
-  const { demo, setDemo, connectedCount } = useDashboard();
-  return (
-    <div className="panel flex items-start gap-3 p-3">
-      <FlaskConical className={cn("mt-0.5 size-4", demo ? "text-warning" : "text-muted-foreground")} />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-semibold">Demo mode</span>
-          <Switch checked={demo} onCheckedChange={setDemo} aria-label="Toggle demo mode" />
-        </div>
-        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          {demo
-            ? "Showing realistic sample data. Nothing here is from a real account."
-            : connectedCount > 0
-              ? `Live data from ${connectedCount} connected ${connectedCount === 1 ? "account" : "accounts"}.`
-              : "Live mode — connect an account to populate the dashboard."}
-        </p>
-      </div>
-    </div>
-  );
-}
 
 function RangePicker() {
   const { rangeDays, setRangeDays } = useDashboard();
@@ -147,40 +120,32 @@ function relativeTime(iso: string | null): string {
   return new Date(iso).toLocaleDateString();
 }
 
-/** Honest status: LIVE only when a real, recently-synced connection exists. */
+/** Honest status: we only ever claim "last checked", never real-time. */
 function SyncStatus() {
-  const { demo, connectedCount, lastSyncedAt, syncing, syncAll } = useDashboard();
-  const fresh = lastSyncedAt !== null && Date.now() - Date.parse(lastSyncedAt) < 15 * 60_000;
+  const { accounts, lastCheckedAt, refreshing, refreshAll } = useDashboard();
 
   return (
     <div className="hidden items-center gap-2 md:flex">
       <span
         className={cn(
           "flex items-center gap-1.5 rounded-xl border border-border bg-secondary/50 px-2.5 py-1 text-xs font-semibold",
-          demo ? "text-warning" : syncing ? "text-primary" : fresh ? "text-success" : "text-muted-foreground",
+          refreshing ? "text-primary" : "text-muted-foreground",
         )}
-        title={lastSyncedAt ? `Last synchronized ${new Date(lastSyncedAt).toLocaleString()}` : undefined}
       >
-        {demo ? (
-          "DEMO DATA"
-        ) : syncing ? (
+        {refreshing ? (
           <>
-            <RefreshCw className="size-3 animate-spin" /> Syncing…
+            <RefreshCw className="size-3 animate-spin" /> Checking…
           </>
-        ) : connectedCount === 0 ? (
-          "NO ACCOUNTS"
-        ) : fresh ? (
-          <>
-            <span className="live-dot" /> LIVE
-          </>
+        ) : accounts.length === 0 ? (
+          "No accounts yet"
         ) : (
-          `UPDATED ${relativeTime(lastSyncedAt).toUpperCase()}`
+          `Last checked ${relativeTime(lastCheckedAt)}`
         )}
       </span>
-      {!demo && connectedCount > 0 ? (
-        <Button size="sm" variant="secondary" disabled={syncing} onClick={() => void syncAll()}>
-          <RefreshCw className={cn("mr-1.5 size-3.5", syncing && "animate-spin")} />
-          Sync all
+      {accounts.length > 0 ? (
+        <Button size="sm" variant="secondary" disabled={refreshing} onClick={() => void refreshAll()}>
+          <RefreshCw className={cn("mr-1.5 size-3.5", refreshing && "animate-spin")} />
+          Refresh all
         </Button>
       ) : null}
     </div>
@@ -300,7 +265,13 @@ function SidebarBody({ onNavigate }: { onNavigate?: (() => void) | undefined }) 
       </Link>
       <SidebarNav onNavigate={onNavigate} />
       <div className="mt-auto space-y-3">
-        <DemoToggle />
+        <div className="panel p-3">
+          <p className="text-sm font-semibold">Public presence tracking</p>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            SocialPulse reads what your profiles share publicly. Private metrics stay hidden until you authorize a
+            platform.
+          </p>
+        </div>
       </div>
     </div>
   );
