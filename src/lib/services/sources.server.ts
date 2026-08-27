@@ -128,20 +128,21 @@ export async function updateSource(
   orgId: string,
   userId: string,
   sourceId: string,
-  patch: { label?: string | null; paused?: boolean },
+  patch: { label?: string | null | undefined; paused?: boolean | undefined },
 ): Promise<void> {
   await assertMember(supabase, orgId, userId);
-  const update: Record<string, string | boolean | null> = {
-    updated_at: new Date().toISOString(),
-  };
-  if (patch.label !== undefined) update["label"] = patch.label;
-  if (patch.paused !== undefined) {
-    update["paused"] = patch.paused;
-    update["next_sync_at"] = patch.paused ? null : new Date().toISOString();
-  }
   const { error } = await supabaseAdmin
     .from("provider_accounts")
-    .update(update)
+    .update({
+      updated_at: new Date().toISOString(),
+      ...(patch.label !== undefined ? { label: patch.label } : {}),
+      ...(patch.paused !== undefined
+        ? {
+            paused: patch.paused,
+            next_sync_at: patch.paused ? null : new Date().toISOString(),
+          }
+        : {}),
+    })
     .eq("id", sourceId)
     .eq("org_id", orgId);
   if (error) throw new Error(error.message);
