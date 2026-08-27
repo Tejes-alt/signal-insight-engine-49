@@ -24,6 +24,11 @@ export const absent = (status: Exclude<MetricStatus, "available">, reason: strin
   reason,
 });
 
+/** Reason text for a metric a platform only sells on a restricted/paid tier. */
+export const restrictedNote = (platform: string, metric: string): string =>
+  `${platform} only provides ${metric} on a restricted API tier that this installation is not enrolled in.`;
+
+
 export interface TokenSet {
   accessToken: string;
   refreshToken?: string | null;
