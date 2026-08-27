@@ -1,26 +1,133 @@
+import { useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Activity, Antenna, LogOut, Radar } from "lucide-react";
+import {
+  BarChart3,
+  FlaskConical,
+  LayoutDashboard,
+  Link2,
+  LogOut,
+  Menu,
+  Moon,
+  Play,
+  RefreshCw,
+  Sparkles,
+  Sun,
+  X,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useTheme } from "@/components/theme-provider";
+import { DashboardProvider, RANGES, useDashboard } from "@/hooks/use-dashboard";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { to: "/command", label: "Command", icon: Radar },
-  { to: "/sources", label: "Sources", icon: Antenna },
+  { to: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { to: "/analytics", label: "Analytics", icon: BarChart3 },
+  { to: "/content", label: "Content", icon: Play },
+  { to: "/insights", label: "Insights", icon: Sparkles },
+  { to: "/accounts", label: "Accounts", icon: Link2 },
 ] as const;
 
-export function AppShell({
-  children,
-  workspaceName,
-  email,
-}: {
-  children: React.ReactNode;
-  workspaceName: string;
-  email: string | null;
-}) {
+export function Logo({ compact = false }: { compact?: boolean }) {
+  return (
+    <span className="flex items-center gap-2.5">
+      <span className="relative grid size-9 place-items-center rounded-xl" style={{ background: "var(--gradient-brand)" }}>
+        <span className="font-display text-sm font-bold text-background">P</span>
+      </span>
+      {!compact ? (
+        <span className="font-display text-lg font-bold tracking-tight">
+          Pulse<span className="gradient-text">.</span>
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  return (
+    <nav className="flex flex-col gap-1">
+      {NAV.map(({ to, label, icon: Icon }) => {
+        const active = pathname === to;
+        return (
+          <Link
+            key={to}
+            to={to}
+            onClick={onNavigate}
+            className={cn(
+              "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+              active
+                ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[var(--shadow-soft)]"
+                : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground",
+            )}
+          >
+            {active ? (
+              <span
+                className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full"
+                style={{ background: "var(--gradient-brand)" }}
+              />
+            ) : null}
+            <Icon className={cn("size-4 transition-transform duration-200 group-hover:scale-110", active && "text-primary")} />
+            {label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function DemoToggle() {
+  const { demo, setDemo, connectedCount } = useDashboard();
+  return (
+    <div className="panel flex items-start gap-3 p-3">
+      <FlaskConical className={cn("mt-0.5 size-4", demo ? "text-warning" : "text-muted-foreground")} />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm font-semibold">Demo mode</span>
+          <Switch checked={demo} onCheckedChange={setDemo} aria-label="Toggle demo mode" />
+        </div>
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+          {demo
+            ? "Showing realistic sample data. Nothing here is from a real account."
+            : connectedCount > 0
+              ? `Live data from ${connectedCount} connected ${connectedCount === 1 ? "account" : "accounts"}.`
+              : "Live mode — connect an account to populate the dashboard."}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function RangePicker() {
+  const { rangeDays, setRangeDays } = useDashboard();
+  return (
+    <div className="flex items-center rounded-xl border border-border bg-secondary/50 p-1">
+      {RANGES.map((r) => (
+        <button
+          key={r.days}
+          onClick={() => setRangeDays(r.days)}
+          className={cn(
+            "rounded-lg px-2.5 py-1 text-xs font-semibold transition-all duration-200",
+            rangeDays === r.days
+              ? "bg-background text-foreground shadow-[var(--shadow-soft)]"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {r.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
+  const { theme, toggle } = useTheme();
+  const { refetch, isLoading, email } = useDashboard();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   async function signOut() {
     await queryClient.cancelQueries();
@@ -30,87 +137,123 @@ export function AppShell({
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur">
-        <div className="flex h-14 items-center gap-6 px-4 md:px-6">
-          <Link to="/command" className="flex items-center gap-2">
-            <span className="live-dot h-2 w-2 rounded-full bg-primary" />
-            <span className="font-display text-sm font-semibold tracking-[0.22em] text-foreground">
-              SENTINEX
-            </span>
-          </Link>
-
-          <nav className="flex items-center gap-1">
-            {NAV.map((item) => {
-              const active = pathname.startsWith(item.to);
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={cn(
-                    "label-mono flex items-center gap-2 rounded-md px-3 py-1.5 transition-colors",
-                    active
-                      ? "bg-secondary text-foreground"
-                      : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
-                  )}
-                >
-                  <item.icon className="h-3.5 w-3.5" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="ml-auto flex items-center gap-4">
-            <div className="hidden text-right sm:block">
-              <div className="label-mono text-muted-foreground">{workspaceName}</div>
-              <div className="text-xs text-muted-foreground/70">{email}</div>
-            </div>
-            <button
-              onClick={signOut}
-              className="label-mono flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Exit
-            </button>
-          </div>
+    <header className="glass sticky top-0 z-30 flex h-16 items-center gap-3 border-x-0 border-t-0 px-4 md:px-7">
+      <Button variant="ghost" size="icon" className="lg:hidden" onClick={onOpenMenu} aria-label="Open navigation">
+        <Menu className="size-5" />
+      </Button>
+      <div className="lg:hidden">
+        <Logo compact />
+      </div>
+      <div className="ml-auto flex items-center gap-2">
+        <RangePicker />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={refetch} aria-label="Refresh data">
+              <RefreshCw className={cn("size-4", isLoading && "animate-spin")} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Refresh</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle theme">
+              {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{theme === "dark" ? "Light mode" : "Dark mode"}</TooltipContent>
+        </Tooltip>
+        <div className="hidden items-center gap-2 rounded-xl border border-border bg-secondary/50 py-1 pl-3 pr-1 sm:flex">
+          <span className="max-w-[11rem] truncate text-xs text-muted-foreground">{email ?? "Signed in"}</span>
+          <Button variant="ghost" size="icon" className="size-7" onClick={signOut} aria-label="Sign out">
+            <LogOut className="size-3.5" />
+          </Button>
         </div>
-      </header>
-      <main className="px-4 py-6 md:px-6">{children}</main>
+      </div>
+    </header>
+  );
+}
+
+function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
+  return (
+    <div className="flex h-full flex-col gap-6 p-4">
+      <Link to="/dashboard" className="px-2 pt-2" onClick={onNavigate}>
+        <Logo />
+      </Link>
+      <SidebarNav onNavigate={onNavigate} />
+      <div className="mt-auto space-y-3">
+        <DemoToggle />
+      </div>
     </div>
   );
 }
 
-export function StatBlock({
-  label,
-  value,
-  sub,
-  tone = "default",
+function ShellInner({ children }: { children: ReactNode }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  return (
+    <div className="aurora min-h-screen">
+      <div className="flex min-h-screen">
+        <aside className="hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar/70 backdrop-blur-xl lg:block">
+          <div className="sticky top-0 h-screen">
+            <SidebarBody />
+          </div>
+        </aside>
+
+        {menuOpen ? (
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <button
+              className="animate-fade absolute inset-0 bg-background/70 backdrop-blur-sm"
+              onClick={() => setMenuOpen(false)}
+              aria-label="Close navigation"
+            />
+            <div className="animate-rise absolute inset-y-0 left-0 w-72 border-r border-sidebar-border bg-sidebar">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-3"
+                onClick={() => setMenuOpen(false)}
+                aria-label="Close navigation"
+              >
+                <X className="size-5" />
+              </Button>
+              <SidebarBody onNavigate={() => setMenuOpen(false)} />
+            </div>
+          </div>
+        ) : null}
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          <TopBar onOpenMenu={() => setMenuOpen(true)} />
+          <main className="mx-auto w-full max-w-[100rem] flex-1 px-4 py-6 md:px-7 md:py-8">{children}</main>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <DashboardProvider>
+      <ShellInner>{children}</ShellInner>
+    </DashboardProvider>
+  );
+}
+
+export function PageHeader({
+  title,
+  description,
+  actions,
 }: {
-  label: string;
-  value: string;
-  sub?: string | undefined;
-  tone?: "default" | "positive" | "negative" | undefined;
+  title: string;
+  description?: string;
+  actions?: ReactNode;
 }) {
   return (
-    <div className="panel rise-in p-4">
-      <div className="label-mono text-muted-foreground">{label}</div>
-      <div className="mt-2 font-display text-2xl font-semibold tabular-nums text-foreground">
-        {value}
+    <div className="animate-rise mb-6 flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 className="font-display text-2xl font-bold tracking-tight md:text-3xl">{title}</h1>
+        {description ? <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{description}</p> : null}
       </div>
-      {sub ? (
-        <div
-          className={cn(
-            "mt-1 flex items-center gap-1 text-xs",
-            tone === "positive" && "text-primary",
-            tone === "negative" && "text-destructive",
-            tone === "default" && "text-muted-foreground",
-          )}
-        >
-          <Activity className="h-3 w-3" />
-          {sub}
-        </div>
-      ) : null}
+      {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
     </div>
   );
 }
