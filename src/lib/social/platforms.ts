@@ -16,11 +16,6 @@ export type PlatformId =
   | "tiktok"
   | "twitter"
   | "facebook"
-  | "threads"
-  | "pinterest"
-  | "reddit"
-  | "bluesky"
-  | "snapchat"
   | "gmb";
 
 export interface PlatformDescriptor {
@@ -178,78 +173,6 @@ const base: Record<PlatformId, PlatformDescriptor> = {
       "engagementRate",
     ],
     notes: "Facebook Pages only — personal profiles are not supported by the platform API.",
-  },
-  threads: {
-    id: "threads",
-    name: "Threads",
-    mark: "@",
-    accent: "#a78bfa",
-    handlePrefix: "@",
-    handleLabel: "Username",
-    handlePlaceholder: "yourhandle",
-    description: "Followers, views and reply activity.",
-    metrics: ["followers", "views", "likes", "comments", "shares", "posts", "engagement", "engagementRate"],
-    notes: "Threads insights are limited to the authorized account's own posts.",
-  },
-  pinterest: {
-    id: "pinterest",
-    name: "Pinterest",
-    mark: "P",
-    accent: "#e60023",
-    handlePrefix: "",
-    handleLabel: "Username",
-    handlePlaceholder: "yourprofile",
-    description: "Pin impressions, saves and outbound clicks.",
-    metrics: ["followers", "impressions", "saves", "comments", "posts", "engagement", "engagementRate"],
-    notes: "Requires a Pinterest business account.",
-  },
-  reddit: {
-    id: "reddit",
-    name: "Reddit",
-    mark: "r/",
-    accent: "#ff4500",
-    handlePrefix: "u/",
-    handleLabel: "Username",
-    handlePlaceholder: "username",
-    description: "Post score, comments and subreddit activity.",
-    metrics: ["likes", "comments", "posts", "engagement"],
-    notes: "Reddit exposes score and comment counts; follower analytics are not provided.",
-  },
-  bluesky: {
-    id: "bluesky",
-    name: "Bluesky",
-    mark: "bs",
-    accent: "#0085ff",
-    handlePrefix: "@",
-    handleLabel: "Handle",
-    handlePlaceholder: "you.bsky.social",
-    description: "Followers, likes and reposts.",
-    metrics: ["followers", "following", "likes", "comments", "shares", "posts", "engagement"],
-    notes: "Bluesky does not currently expose impression or reach data.",
-  },
-  snapchat: {
-    id: "snapchat",
-    name: "Snapchat",
-    mark: "SC",
-    accent: "#fffc00",
-    handlePrefix: "@",
-    handleLabel: "Username",
-    handlePlaceholder: "username",
-    description: "Story views and audience metrics where permitted.",
-    metrics: ["followers", "views", "shares", "posts"],
-    notes: "Snapchat analytics depend on your public profile permissions.",
-  },
-  gmb: {
-    id: "gmb",
-    name: "Google Business",
-    mark: "GB",
-    accent: "#34a853",
-    handlePrefix: "",
-    handleLabel: "Business name",
-    handlePlaceholder: "your business",
-    description: "Profile views, searches and customer actions.",
-    metrics: ["views", "impressions", "profileViews", "posts"],
-    notes: "Google Business Profile reports discovery metrics rather than followers.",
   },
 };
 
